@@ -224,6 +224,7 @@ def inception_v1_base(inputs,
         if final_endpoint == end_point: return net, end_points
 
         end_point = 'MaxPool_5a_2x2'
+        # should be net = slim.max_pool2d(net, [3, 3], stride=2, scope=end_point) ?
         net = slim.max_pool2d(net, [2, 2], stride=2, scope=end_point)
         end_points[end_point] = net
         if final_endpoint == end_point: return net, end_points
