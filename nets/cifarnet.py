@@ -102,7 +102,7 @@ def cifarnet_arg_scope(weight_decay=0.004):
     weight_decay: The weight decay to use for regularizing the model.
 
   Returns:
-    An `arg_scope` to use for the inception v3 model.
+    An `arg_scope` to use for the cifarnet model.
   """
   with slim.arg_scope(
       [slim.conv2d],

@@ -21,7 +21,8 @@ from __future__ import print_function
 import numpy as np
 import tensorflow as tf
 
-from nets import inception
+# from nets import inception
+import inception
 
 slim = tf.contrib.slim
 
@@ -96,22 +97,22 @@ class InceptionV1Test(tf.test.TestCase):
     _, end_points = inception.inception_v1_base(inputs,
                                                 final_endpoint='Mixed_5c')
     endpoints_shapes = {
-        'Conv2d_1a_7x7': [5, 112, 112, 64],
-        'MaxPool_2a_3x3': [5, 56, 56, 64],
-        'Conv2d_2b_1x1': [5, 56, 56, 64],
-        'Conv2d_2c_3x3': [5, 56, 56, 192],
-        'MaxPool_3a_3x3': [5, 28, 28, 192],
-        'Mixed_3b': [5, 28, 28, 256],
-        'Mixed_3c': [5, 28, 28, 480],
-        'MaxPool_4a_3x3': [5, 14, 14, 480],
-        'Mixed_4b': [5, 14, 14, 512],
-        'Mixed_4c': [5, 14, 14, 512],
-        'Mixed_4d': [5, 14, 14, 512],
-        'Mixed_4e': [5, 14, 14, 528],
-        'Mixed_4f': [5, 14, 14, 832],
-        'MaxPool_5a_2x2': [5, 7, 7, 832],
-        'Mixed_5b': [5, 7, 7, 832],
-        'Mixed_5c': [5, 7, 7, 1024]
+        'Conv2d_1a_7x7': [batch_size, 112, 112, 64],
+        'MaxPool_2a_3x3': [batch_size, 56, 56, 64],
+        'Conv2d_2b_1x1': [batch_size, 56, 56, 64],
+        'Conv2d_2c_3x3': [batch_size, 56, 56, 192],
+        'MaxPool_3a_3x3': [batch_size, 28, 28, 192],
+        'Mixed_3b': [batch_size, 28, 28, 256],
+        'Mixed_3c': [batch_size, 28, 28, 480],
+        'MaxPool_4a_3x3': [batch_size, 14, 14, 480],
+        'Mixed_4b': [batch_size, 14, 14, 512],
+        'Mixed_4c': [batch_size, 14, 14, 512],
+        'Mixed_4d': [batch_size, 14, 14, 512],
+        'Mixed_4e': [batch_size, 14, 14, 528],
+        'Mixed_4f': [batch_size, 14, 14, 832],
+        'MaxPool_5a_2x2': [batch_size, 7, 7, 832],
+        'Mixed_5b': [batch_size, 7, 7, 832],
+        'Mixed_5c': [batch_size, 7, 7, 1024]
     }
 
     self.assertItemsEqual(endpoints_shapes.keys(), end_points.keys())
@@ -150,17 +151,17 @@ class InceptionV1Test(tf.test.TestCase):
     _, end_points = inception.inception_v1_base(
         inputs, include_root_block=False)
     endpoints_shapes = {
-        'Mixed_3b': [5, 28, 28, 256],
-        'Mixed_3c': [5, 28, 28, 480],
-        'MaxPool_4a_3x3': [5, 14, 14, 480],
-        'Mixed_4b': [5, 14, 14, 512],
-        'Mixed_4c': [5, 14, 14, 512],
-        'Mixed_4d': [5, 14, 14, 512],
-        'Mixed_4e': [5, 14, 14, 528],
-        'Mixed_4f': [5, 14, 14, 832],
-        'MaxPool_5a_2x2': [5, 7, 7, 832],
-        'Mixed_5b': [5, 7, 7, 832],
-        'Mixed_5c': [5, 7, 7, 1024]
+        'Mixed_3b': [batch_size, 28, 28, 256],
+        'Mixed_3c': [batch_size, 28, 28, 480],
+        'MaxPool_4a_3x3': [batch_size, 14, 14, 480],
+        'Mixed_4b': [batch_size, 14, 14, 512],
+        'Mixed_4c': [batch_size, 14, 14, 512],
+        'Mixed_4d': [batch_size, 14, 14, 512],
+        'Mixed_4e': [batch_size, 14, 14, 528],
+        'Mixed_4f': [batch_size, 14, 14, 832],
+        'MaxPool_5a_2x2': [batch_size, 7, 7, 832],
+        'Mixed_5b': [batch_size, 7, 7, 832],
+        'Mixed_5c': [batch_size, 7, 7, 1024]
     }
 
     self.assertItemsEqual(endpoints_shapes.keys(), end_points.keys())
