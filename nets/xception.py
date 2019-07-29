@@ -4,6 +4,7 @@ from __future__ import print_function
 from builtins import range
 
 import tensorflow as tf
+
 slim = tf.contrib.slim
 
 '''
@@ -43,11 +44,11 @@ def xception(inputs,
     with tf.variable_scope('Xception') as sc:
         end_points_collection = sc.name + '_end_points'
 
-        with slim.arg_scope([slim.separable_conv2d], depth_multiplier=1),\
-                slim.arg_scope([slim.separable_conv2d, slim.conv2d, slim.avg_pool2d], outputs_collections=[end_points_collection]),\
-                slim.arg_scope([slim.batch_norm], is_training=is_training):
-
-            #===========ENTRY FLOW==============
+        with slim.arg_scope([slim.separable_conv2d], depth_multiplier=1), \
+             slim.arg_scope([slim.separable_conv2d, slim.conv2d, slim.avg_pool2d],
+                            outputs_collections=[end_points_collection]), \
+             slim.arg_scope([slim.batch_norm], is_training=is_training):
+            # ===========ENTRY FLOW==============
             # Block 1
             net = slim.conv2d(
                 inputs, 32, [3, 3], stride=2, padding='valid', scope='block1_conv1')
@@ -105,26 +106,26 @@ def xception(inputs,
                 net, [3, 3], stride=2, padding='same', scope='block4_max_pool')
             net = tf.add(net, residual, name='block4_add')
 
-            #===========MIDDLE FLOW===============
+            # ===========MIDDLE FLOW===============
             for i in range(8):
                 block_prefix = 'block%s_' % (str(i + 5))
 
                 residual = net
-                net = tf.nn.relu(net, name=block_prefix+'relu1')
+                net = tf.nn.relu(net, name=block_prefix + 'relu1')
                 net = slim.separable_conv2d(
-                    net, 728, [3, 3], scope=block_prefix+'dws_conv1')
-                net = slim.batch_norm(net, scope=block_prefix+'bn1')
-                net = tf.nn.relu(net, name=block_prefix+'relu2')
+                    net, 728, [3, 3], scope=block_prefix + 'dws_conv1')
+                net = slim.batch_norm(net, scope=block_prefix + 'bn1')
+                net = tf.nn.relu(net, name=block_prefix + 'relu2')
                 net = slim.separable_conv2d(
-                    net, 728, [3, 3], scope=block_prefix+'dws_conv2')
-                net = slim.batch_norm(net, scope=block_prefix+'bn2')
-                net = tf.nn.relu(net, name=block_prefix+'relu3')
+                    net, 728, [3, 3], scope=block_prefix + 'dws_conv2')
+                net = slim.batch_norm(net, scope=block_prefix + 'bn2')
+                net = tf.nn.relu(net, name=block_prefix + 'relu3')
                 net = slim.separable_conv2d(
-                    net, 728, [3, 3], scope=block_prefix+'dws_conv3')
-                net = slim.batch_norm(net, scope=block_prefix+'bn3')
-                net = tf.add(net, residual, name=block_prefix+'add')
+                    net, 728, [3, 3], scope=block_prefix + 'dws_conv3')
+                net = slim.batch_norm(net, scope=block_prefix + 'bn3')
+                net = tf.add(net, residual, name=block_prefix + 'add')
 
-            #========EXIT FLOW============
+            # ========EXIT FLOW============
             residual = slim.conv2d(
                 net, 1024, [1, 1], stride=2, scope='block12_res_conv')
             residual = slim.batch_norm(residual, scope='block12_res_bn')
@@ -153,7 +154,7 @@ def xception(inputs,
             # Replace FC layer with conv layer instead
             net = slim.conv2d(net, 2048, [1, 1], scope='block15_conv1')
             logits = slim.conv2d(net, num_classes, [
-                                 1, 1], activation_fn=None, scope='block15_conv2')
+                1, 1], activation_fn=None, scope='block15_conv2')
             # Squeeze height and width only
             logits = tf.squeeze(logits, [1, 2], name='block15_logits')
             predictions = slim.softmax(logits, scope='Predictions')
@@ -183,7 +184,6 @@ def xception_arg_scope(weight_decay=0.00001,
                         weights_regularizer=slim.l2_regularizer(weight_decay),
                         biases_initializer=None,
                         activation_fn=None):
-
         # Set parameters for batch_norm. Note: Do not set activation function as it's preset to None already.
         with slim.arg_scope([slim.batch_norm],
                             decay=batch_norm_decay,

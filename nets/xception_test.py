@@ -75,9 +75,9 @@ class XceptionTest(tf.test.TestCase):
 
             # Check outputs
             self.assertListEqual(logits.get_shape().as_list(), [
-                                 batch_size, num_classes])
+                batch_size, num_classes])
             self.assertListEqual(end_points['Predictions'].get_shape().as_list(), [
-                                 batch_size, num_classes])
+                batch_size, num_classes])
 
     def testEvaluation(self):
         batch_size = 1
