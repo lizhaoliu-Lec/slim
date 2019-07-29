@@ -1,0 +1,6 @@
+# filter jupyter notebook cache
+.ipynb_checkpoints/
+
+# filter ide file
+.idea/
+.vscode/
