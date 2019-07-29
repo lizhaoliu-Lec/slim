@@ -74,9 +74,9 @@ def inception_arg_scope(weight_decay=0.00004,
     with slim.arg_scope([slim.conv2d, slim.fully_connected],
                         weights_regularizer=slim.l2_regularizer(weight_decay)):
         with slim.arg_scope(
-            [slim.conv2d],
-            weights_initializer=slim.variance_scaling_initializer(),
-            activation_fn=activation_fn,
-            normalizer_fn=normalizer_fn,
+                [slim.conv2d],
+                weights_initializer=slim.variance_scaling_initializer(),
+                activation_fn=activation_fn,
+                normalizer_fn=normalizer_fn,
                 normalizer_params=normalizer_params) as sc:
             return sc

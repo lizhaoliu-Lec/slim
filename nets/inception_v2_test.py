@@ -21,16 +21,13 @@ from __future__ import print_function
 import numpy as np
 import tensorflow as tf
 
-import inception
+from nets import inception
 
 slim = tf.contrib.slim
 
 
 class InceptionV2Test(tf.test.TestCase):
 
-    # First test:
-    # test the output scope
-    # check output shape
     def testBuildClassificationNetwork(self):
         batch_size = 5
         height, width = 224, 224
@@ -46,8 +43,6 @@ class InceptionV2Test(tf.test.TestCase):
         self.assertListEqual(end_points['Predictions'].get_shape().as_list(),
                              [batch_size, num_classes])
 
-    # Seconde test:
-    # Test feature extraction
     def testBuildPreLogitsNetwork(self):
         batch_size = 5
         height, width = 224, 224
@@ -56,13 +51,10 @@ class InceptionV2Test(tf.test.TestCase):
         inputs = tf.random_uniform((batch_size, height, width, 3))
         net, end_points = inception.inception_v2(inputs, num_classes)
         self.assertTrue(net.op.name.startswith('InceptionV2/Logits/AvgPool'))
-        self.assertListEqual(net.get_shape().as_list(),
-                             [batch_size, 1, 1, 1024])
+        self.assertListEqual(net.get_shape().as_list(), [batch_size, 1, 1, 1024])
         self.assertFalse('Logits' in end_points)
         self.assertFalse('Predictions' in end_points)
 
-    # Third test:
-    # test base network's scope
     def testBuildBaseNetwork(self):
         batch_size = 5
         height, width = 224, 224
@@ -79,10 +71,6 @@ class InceptionV2Test(tf.test.TestCase):
                               'MaxPool_3a_3x3']
         self.assertItemsEqual(end_points.keys(), expected_endpoints)
 
-    # 4th test:
-    # test for scope name
-    # test from first endpoint
-    # to the end endpoint
     def testBuildOnlyUptoFinalEndpoint(self):
         batch_size = 5
         height, width = 224, 224
@@ -97,11 +85,7 @@ class InceptionV2Test(tf.test.TestCase):
                     inputs, final_endpoint=endpoint)
                 self.assertTrue(out_tensor.op.name.startswith(
                     'InceptionV2/' + endpoint))
-                self.assertItemsEqual(endpoints[:index+1], end_points.keys())
-
-    # 5th test:
-    # test for shape
-    # of every endpoint
+                self.assertItemsEqual(endpoints[:index + 1], end_points.keys())
 
     def testBuildAndCheckAllEndPointsUptoMixed5c(self):
         batch_size = 5
@@ -132,8 +116,6 @@ class InceptionV2Test(tf.test.TestCase):
             self.assertListEqual(end_points[endpoint_name].get_shape().as_list(),
                                  expected_shape)
 
-    # 6th test:
-    # test the number of parameter
     def testModelHasExpectedNumberOfParameters(self):
         batch_size = 5
         height, width = 224, 224
@@ -144,9 +126,6 @@ class InceptionV2Test(tf.test.TestCase):
             slim.get_model_variables())
         self.assertAlmostEqual(10173112, total_params)
 
-    # 7th test:
-    # test the function parameters ---- depthMultiplier
-    # with value smaller than 1
     def testBuildEndPointsWithDepthMultiplierLessThanOne(self):
         batch_size = 5
         height, width = 224, 224
@@ -164,13 +143,9 @@ class InceptionV2Test(tf.test.TestCase):
 
         for key in endpoint_keys:
             original_depth = end_points[key].get_shape().as_list()[3]
-            new_depth = end_points_with_multiplier[key].get_shape().as_list()[
-                3]
+            new_depth = end_points_with_multiplier[key].get_shape().as_list()[3]
             self.assertEqual(0.5 * original_depth, new_depth)
 
-    # 8th test:
-    # test the function parameters ---- depthmultiplier
-    # with value greater than 1
     def testBuildEndPointsWithDepthMultiplierGreaterThanOne(self):
         batch_size = 5
         height, width = 224, 224
@@ -188,13 +163,9 @@ class InceptionV2Test(tf.test.TestCase):
 
         for key in endpoint_keys:
             original_depth = end_points[key].get_shape().as_list()[3]
-            new_depth = end_points_with_multiplier[key].get_shape().as_list()[
-                3]
+            new_depth = end_points_with_multiplier[key].get_shape().as_list()[3]
             self.assertEqual(2.0 * original_depth, new_depth)
 
-    # 9th test:
-    # test the function's parameter ---- depthmultiplier
-    # with wrong value smaller or equal to 0.0
     def testRaiseValueErrorWithInvalidDepthMultiplier(self):
         batch_size = 5
         height, width = 224, 224
@@ -202,15 +173,10 @@ class InceptionV2Test(tf.test.TestCase):
 
         inputs = tf.random_uniform((batch_size, height, width, 3))
         with self.assertRaises(ValueError):
-            _ = inception.inception_v2(
-                inputs, num_classes, depth_multiplier=-0.1)
+            _ = inception.inception_v2(inputs, num_classes, depth_multiplier=-0.1)
         with self.assertRaises(ValueError):
-            _ = inception.inception_v2(
-                inputs, num_classes, depth_multiplier=0.0)
+            _ = inception.inception_v2(inputs, num_classes, depth_multiplier=0.0)
 
-    # 10th test:
-    # test the function's parameter ---- useSeparableConvolution
-    # with value false
     def testBuildEndPointsWithUseSeparableConvolutionFalse(self):
         batch_size = 5
         height, width = 224, 224
@@ -234,9 +200,6 @@ class InceptionV2Test(tf.test.TestCase):
             new_shape = end_points_with_replacement[key].get_shape().as_list()
             self.assertListEqual(original_shape, new_shape)
 
-    # 11th test
-    # test function parameter ---- dataformat
-    # with value NCHW
     def testBuildEndPointsNCHWDataFormat(self):
         batch_size = 5
         height, width = 224, 224
@@ -262,9 +225,6 @@ class InceptionV2Test(tf.test.TestCase):
             new_shape = end_points_with_replacement[key].get_shape().as_list()
             self.assertListEqual(transposed_original_shape, new_shape)
 
-    # 12th test
-    # test function parameters ---- dataFormat
-    # with wrong value NCWH, NCHW when use separable convolution
     def testBuildErrorsForDataFormats(self):
         batch_size = 5
         height, width = 224, 224
@@ -279,9 +239,6 @@ class InceptionV2Test(tf.test.TestCase):
         with self.assertRaises(ValueError):
             _ = inception.inception_v2_base(inputs, data_format='NCHW')
 
-    # 13th test
-    # test function parameters ---- height, width
-    # with value of (112, 112)
     def testHalfSizeImages(self):
         batch_size = 5
         height, width = 112, 112
@@ -296,9 +253,6 @@ class InceptionV2Test(tf.test.TestCase):
         self.assertListEqual(pre_pool.get_shape().as_list(),
                              [batch_size, 4, 4, 1024])
 
-    # 14th test
-    # test function parameters ---- height, with, channels
-    # with value (28, 28, 192)
     def testBuildBaseNetworkWithoutRootBlock(self):
         batch_size = 5
         height, width = 28, 28
@@ -326,9 +280,6 @@ class InceptionV2Test(tf.test.TestCase):
             self.assertListEqual(end_points[endpoint_name].get_shape().as_list(),
                                  expected_shape)
 
-    # 15th test
-    # test function parameters ---- height, width
-    # with value of (224, 224)
     def testUnknownImageShape(self):
         tf.reset_default_graph()
         batch_size = 2
@@ -336,8 +287,7 @@ class InceptionV2Test(tf.test.TestCase):
         num_classes = 1000
         input_np = np.random.uniform(0, 1, (batch_size, height, width, 3))
         with self.test_session() as sess:
-            inputs = tf.placeholder(
-                tf.float32, shape=(batch_size, None, None, 3))
+            inputs = tf.placeholder(tf.float32, shape=(batch_size, None, None, 3))
             logits, end_points = inception.inception_v2(inputs, num_classes)
             self.assertTrue(logits.op.name.startswith('InceptionV2/Logits'))
             self.assertListEqual(logits.get_shape().as_list(),
@@ -346,12 +296,8 @@ class InceptionV2Test(tf.test.TestCase):
             feed_dict = {inputs: input_np}
             tf.global_variables_initializer().run()
             pre_pool_out = sess.run(pre_pool, feed_dict=feed_dict)
-            self.assertListEqual(list(pre_pool_out.shape),
-                                 [batch_size, 7, 7, 1024])
+            self.assertListEqual(list(pre_pool_out.shape), [batch_size, 7, 7, 1024])
 
-    # 16th test
-    # test function parameters ---- height, width
-    # with value of (250, 300)
     def testGlobalPoolUnknownImageShape(self):
         tf.reset_default_graph()
         batch_size = 1
@@ -359,8 +305,7 @@ class InceptionV2Test(tf.test.TestCase):
         num_classes = 1000
         input_np = np.random.uniform(0, 1, (batch_size, height, width, 3))
         with self.test_session() as sess:
-            inputs = tf.placeholder(
-                tf.float32, shape=(batch_size, None, None, 3))
+            inputs = tf.placeholder(tf.float32, shape=(batch_size, None, None, 3))
             logits, end_points = inception.inception_v2(inputs, num_classes,
                                                         global_pool=True)
             self.assertTrue(logits.op.name.startswith('InceptionV2/Logits'))
@@ -370,12 +315,8 @@ class InceptionV2Test(tf.test.TestCase):
             feed_dict = {inputs: input_np}
             tf.global_variables_initializer().run()
             pre_pool_out = sess.run(pre_pool, feed_dict=feed_dict)
-            self.assertListEqual(list(pre_pool_out.shape),
-                                 [batch_size, 8, 10, 1024])
+            self.assertListEqual(list(pre_pool_out.shape), [batch_size, 8, 10, 1024])
 
-    # 17th test
-    # test function parameters ---- batch_size
-    # with extreme value of 1
     def testUnknowBatchSize(self):
         batch_size = 1
         height, width = 224, 224
@@ -393,9 +334,6 @@ class InceptionV2Test(tf.test.TestCase):
             output = sess.run(logits, {inputs: images.eval()})
             self.assertEquals(output.shape, (batch_size, num_classes))
 
-# 18th test
-# test function parameters ---- is_training
-# with value of false
     def testEvaluation(self):
         batch_size = 2
         height, width = 224, 224
@@ -411,9 +349,6 @@ class InceptionV2Test(tf.test.TestCase):
             output = sess.run(predictions)
             self.assertEquals(output.shape, (batch_size,))
 
-    # 19th test
-    # test function parameters ---- reuse
-    # with condition of training while evaluating
     def testTrainEvalWithReuse(self):
         train_batch_size = 5
         eval_batch_size = 2
@@ -423,8 +358,7 @@ class InceptionV2Test(tf.test.TestCase):
         train_inputs = tf.random_uniform((train_batch_size, height, width, 3))
         inception.inception_v2(train_inputs, num_classes)
         eval_inputs = tf.random_uniform((eval_batch_size, height, width, 3))
-        logits, _ = inception.inception_v2(
-            eval_inputs, num_classes, reuse=True)
+        logits, _ = inception.inception_v2(eval_inputs, num_classes, reuse=True)
         predictions = tf.argmax(logits, 1)
 
         with self.test_session() as sess:
@@ -432,9 +366,6 @@ class InceptionV2Test(tf.test.TestCase):
             output = sess.run(predictions)
             self.assertEquals(output.shape, (eval_batch_size,))
 
-    # 20th test
-    # test function parameters ---- spatial_squeeze
-    # with value false
     def testLogitsNotSqueezed(self):
         num_classes = 25
         images = tf.random_uniform([1, 224, 224, 3])
@@ -445,12 +376,8 @@ class InceptionV2Test(tf.test.TestCase):
         with self.test_session() as sess:
             tf.global_variables_initializer().run()
             logits_out = sess.run(logits)
-            self.assertListEqual(list(logits_out.shape),
-                                 [1, 1, 1, num_classes])
+            self.assertListEqual(list(logits_out.shape), [1, 1, 1, num_classes])
 
-    # 21th test
-    # test function parameters ---- bathc_norm_scalfe
-    # wiht value of false
     def testNoBatchNormScaleByDefault(self):
         height, width = 224, 224
         num_classes = 1000
@@ -460,10 +387,6 @@ class InceptionV2Test(tf.test.TestCase):
 
         self.assertEqual(tf.global_variables('.*/BatchNorm/gamma:0$'), [])
 
-    # 22th test
-    # test function parameters ---- batch_norm_scale
-    # with value of True
-    # len(moving_mean) = len(gamma)
     def testBatchNormScale(self):
         height, width = 224, 224
         num_classes = 1000
@@ -476,8 +399,7 @@ class InceptionV2Test(tf.test.TestCase):
             v.op.name for v in tf.global_variables('.*/BatchNorm/gamma:0$'))
         self.assertGreater(len(gamma_names), 0)
         for v in tf.global_variables('.*/BatchNorm/moving_mean:0$'):
-            self.assertIn(
-                v.op.name[:-len('moving_mean')] + 'gamma', gamma_names)
+            self.assertIn(v.op.name[:-len('moving_mean')] + 'gamma', gamma_names)
 
 
 if __name__ == '__main__':

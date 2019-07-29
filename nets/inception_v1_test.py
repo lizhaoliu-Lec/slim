@@ -21,8 +21,7 @@ from __future__ import print_function
 import numpy as np
 import tensorflow as tf
 
-# from nets import inception
-import inception
+from nets import inception
 
 slim = tf.contrib.slim
 
@@ -52,8 +51,7 @@ class InceptionV1Test(tf.test.TestCase):
         inputs = tf.random_uniform((batch_size, height, width, 3))
         net, end_points = inception.inception_v1(inputs, num_classes)
         self.assertTrue(net.op.name.startswith('InceptionV1/Logits/AvgPool'))
-        self.assertListEqual(net.get_shape().as_list(),
-                             [batch_size, 1, 1, 1024])
+        self.assertListEqual(net.get_shape().as_list(), [batch_size, 1, 1, 1024])
         self.assertFalse('Logits' in end_points)
         self.assertFalse('Predictions' in end_points)
 
@@ -88,7 +86,7 @@ class InceptionV1Test(tf.test.TestCase):
                     inputs, final_endpoint=endpoint)
                 self.assertTrue(out_tensor.op.name.startswith(
                     'InceptionV1/' + endpoint))
-                self.assertItemsEqual(endpoints[:index+1], end_points.keys())
+                self.assertItemsEqual(endpoints[:index + 1], end_points.keys())
 
     def testBuildAndCheckAllEndPointsUptoMixed5c(self):
         batch_size = 5
@@ -98,22 +96,22 @@ class InceptionV1Test(tf.test.TestCase):
         _, end_points = inception.inception_v1_base(inputs,
                                                     final_endpoint='Mixed_5c')
         endpoints_shapes = {
-            'Conv2d_1a_7x7': [batch_size, 112, 112, 64],
-            'MaxPool_2a_3x3': [batch_size, 56, 56, 64],
-            'Conv2d_2b_1x1': [batch_size, 56, 56, 64],
-            'Conv2d_2c_3x3': [batch_size, 56, 56, 192],
-            'MaxPool_3a_3x3': [batch_size, 28, 28, 192],
-            'Mixed_3b': [batch_size, 28, 28, 256],
-            'Mixed_3c': [batch_size, 28, 28, 480],
-            'MaxPool_4a_3x3': [batch_size, 14, 14, 480],
-            'Mixed_4b': [batch_size, 14, 14, 512],
-            'Mixed_4c': [batch_size, 14, 14, 512],
-            'Mixed_4d': [batch_size, 14, 14, 512],
-            'Mixed_4e': [batch_size, 14, 14, 528],
-            'Mixed_4f': [batch_size, 14, 14, 832],
-            'MaxPool_5a_2x2': [batch_size, 7, 7, 832],
-            'Mixed_5b': [batch_size, 7, 7, 832],
-            'Mixed_5c': [batch_size, 7, 7, 1024]
+            'Conv2d_1a_7x7': [5, 112, 112, 64],
+            'MaxPool_2a_3x3': [5, 56, 56, 64],
+            'Conv2d_2b_1x1': [5, 56, 56, 64],
+            'Conv2d_2c_3x3': [5, 56, 56, 192],
+            'MaxPool_3a_3x3': [5, 28, 28, 192],
+            'Mixed_3b': [5, 28, 28, 256],
+            'Mixed_3c': [5, 28, 28, 480],
+            'MaxPool_4a_3x3': [5, 14, 14, 480],
+            'Mixed_4b': [5, 14, 14, 512],
+            'Mixed_4c': [5, 14, 14, 512],
+            'Mixed_4d': [5, 14, 14, 512],
+            'Mixed_4e': [5, 14, 14, 528],
+            'Mixed_4f': [5, 14, 14, 832],
+            'MaxPool_5a_2x2': [5, 7, 7, 832],
+            'Mixed_5b': [5, 7, 7, 832],
+            'Mixed_5c': [5, 7, 7, 1024]
         }
 
         self.assertItemsEqual(endpoints_shapes.keys(), end_points.keys())
@@ -152,17 +150,17 @@ class InceptionV1Test(tf.test.TestCase):
         _, end_points = inception.inception_v1_base(
             inputs, include_root_block=False)
         endpoints_shapes = {
-            'Mixed_3b': [batch_size, 28, 28, 256],
-            'Mixed_3c': [batch_size, 28, 28, 480],
-            'MaxPool_4a_3x3': [batch_size, 14, 14, 480],
-            'Mixed_4b': [batch_size, 14, 14, 512],
-            'Mixed_4c': [batch_size, 14, 14, 512],
-            'Mixed_4d': [batch_size, 14, 14, 512],
-            'Mixed_4e': [batch_size, 14, 14, 528],
-            'Mixed_4f': [batch_size, 14, 14, 832],
-            'MaxPool_5a_2x2': [batch_size, 7, 7, 832],
-            'Mixed_5b': [batch_size, 7, 7, 832],
-            'Mixed_5c': [batch_size, 7, 7, 1024]
+            'Mixed_3b': [5, 28, 28, 256],
+            'Mixed_3c': [5, 28, 28, 480],
+            'MaxPool_4a_3x3': [5, 14, 14, 480],
+            'Mixed_4b': [5, 14, 14, 512],
+            'Mixed_4c': [5, 14, 14, 512],
+            'Mixed_4d': [5, 14, 14, 512],
+            'Mixed_4e': [5, 14, 14, 528],
+            'Mixed_4f': [5, 14, 14, 832],
+            'MaxPool_5a_2x2': [5, 7, 7, 832],
+            'Mixed_5b': [5, 7, 7, 832],
+            'Mixed_5c': [5, 7, 7, 1024]
         }
 
         self.assertItemsEqual(endpoints_shapes.keys(), end_points.keys())
@@ -179,8 +177,7 @@ class InceptionV1Test(tf.test.TestCase):
         num_classes = 1000
         input_np = np.random.uniform(0, 1, (batch_size, height, width, 3))
         with self.test_session() as sess:
-            inputs = tf.placeholder(
-                tf.float32, shape=(batch_size, None, None, 3))
+            inputs = tf.placeholder(tf.float32, shape=(batch_size, None, None, 3))
             logits, end_points = inception.inception_v1(inputs, num_classes)
             self.assertTrue(logits.op.name.startswith('InceptionV1/Logits'))
             self.assertListEqual(logits.get_shape().as_list(),
@@ -189,8 +186,7 @@ class InceptionV1Test(tf.test.TestCase):
             feed_dict = {inputs: input_np}
             tf.global_variables_initializer().run()
             pre_pool_out = sess.run(pre_pool, feed_dict=feed_dict)
-            self.assertListEqual(list(pre_pool_out.shape),
-                                 [batch_size, 7, 7, 1024])
+            self.assertListEqual(list(pre_pool_out.shape), [batch_size, 7, 7, 1024])
 
     def testGlobalPoolUnknownImageShape(self):
         tf.reset_default_graph()
@@ -199,8 +195,7 @@ class InceptionV1Test(tf.test.TestCase):
         num_classes = 1000
         input_np = np.random.uniform(0, 1, (batch_size, height, width, 3))
         with self.test_session() as sess:
-            inputs = tf.placeholder(
-                tf.float32, shape=(batch_size, None, None, 3))
+            inputs = tf.placeholder(tf.float32, shape=(batch_size, None, None, 3))
             logits, end_points = inception.inception_v1(inputs, num_classes,
                                                         global_pool=True)
             self.assertTrue(logits.op.name.startswith('InceptionV1/Logits'))
@@ -210,8 +205,7 @@ class InceptionV1Test(tf.test.TestCase):
             feed_dict = {inputs: input_np}
             tf.global_variables_initializer().run()
             pre_pool_out = sess.run(pre_pool, feed_dict=feed_dict)
-            self.assertListEqual(list(pre_pool_out.shape),
-                                 [batch_size, 8, 10, 1024])
+            self.assertListEqual(list(pre_pool_out.shape), [batch_size, 8, 10, 1024])
 
     def testUnknowBatchSize(self):
         batch_size = 1
@@ -254,8 +248,7 @@ class InceptionV1Test(tf.test.TestCase):
         train_inputs = tf.random_uniform((train_batch_size, height, width, 3))
         inception.inception_v1(train_inputs, num_classes)
         eval_inputs = tf.random_uniform((eval_batch_size, height, width, 3))
-        logits, _ = inception.inception_v1(
-            eval_inputs, num_classes, reuse=True)
+        logits, _ = inception.inception_v1(eval_inputs, num_classes, reuse=True)
         predictions = tf.argmax(logits, 1)
 
         with self.test_session() as sess:
@@ -273,8 +266,7 @@ class InceptionV1Test(tf.test.TestCase):
         with self.test_session() as sess:
             tf.global_variables_initializer().run()
             logits_out = sess.run(logits)
-            self.assertListEqual(list(logits_out.shape),
-                                 [1, 1, 1, num_classes])
+            self.assertListEqual(list(logits_out.shape), [1, 1, 1, num_classes])
 
     def testNoBatchNormScaleByDefault(self):
         height, width = 224, 224
@@ -297,8 +289,7 @@ class InceptionV1Test(tf.test.TestCase):
             v.op.name for v in tf.global_variables('.*/BatchNorm/gamma:0$'))
         self.assertGreater(len(gamma_names), 0)
         for v in tf.global_variables('.*/BatchNorm/moving_mean:0$'):
-            self.assertIn(
-                v.op.name[:-len('moving_mean')] + 'gamma', gamma_names)
+            self.assertIn(v.op.name[:-len('moving_mean')] + 'gamma', gamma_names)
 
 
 if __name__ == '__main__':
