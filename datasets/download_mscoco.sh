@@ -67,10 +67,7 @@ VAL_IMAGE_FILE="val2014.zip"
 download_and_unzip ${BASE_IMAGE_URL} ${VAL_IMAGE_FILE}
 VAL_IMAGE_DIR="${SCRATCH_DIR}/val2014"
 
-
 # Download the annotations.
 BASE_INSTANCES_URL="http://images.cocodataset.org/annotations"
 INSTANCES_FILE="annotations_trainval2014.zip"
 download_and_unzip ${BASE_INSTANCES_URL} ${INSTANCES_FILE}
-
-
