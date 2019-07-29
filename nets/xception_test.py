@@ -18,7 +18,7 @@ from __future__ import print_function
 
 import tensorflow as tf
 
-import xception
+from nets import xception
 
 slim = tf.contrib.slim
 
