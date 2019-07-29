@@ -8,7 +8,7 @@ import tensorflow as tf
 
 slim = tf.contrib.slim
 
-from shufflenet import _channel_shuffle, stack_blocks_dense
+from nets.shufflenet.shufflenet import _channel_shuffle, stack_blocks_dense
 
 
 @slim.add_arg_scope
@@ -40,8 +40,8 @@ def shufflenet_v2_unit(inputs,
                 shortcut, depth, 1, stride=1, padding='SAME', scope='shortcut_conv_1x1')
             residual = inputs
         else:
-            depth_left = int(depth * left_ratio)    # left branch depth
-            depth = depth - depth_left    # right branch depth
+            depth_left = int(depth * left_ratio)  # left branch depth
+            depth = depth - depth_left  # right branch depth
             shortcut, residual = tf.split(inputs, [depth_left, depth], axis=-1)
 
         # construct right branch
@@ -171,7 +171,6 @@ def shufflenet_v2_base(inputs,
 
 
 shufflenet_v2_base.default_image_size = 224
-
 
 # shufflenet v2 depths dictionary
 depths_dict = {0.5: (48, 96, 192, 1024),

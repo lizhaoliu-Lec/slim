@@ -8,7 +8,7 @@ import tensorflow as tf
 
 slim = tf.contrib.slim
 
-from nets.shufflenet_utils import group_conv2d
+from nets.shufflenet.shufflenet_utils import group_conv2d
 
 
 def _channel_shuffle(inputs, num_groups, scope=None):
@@ -17,8 +17,8 @@ def _channel_shuffle(inputs, num_groups, scope=None):
     with tf.variable_scope(scope, 'channel_shuffle', [inputs]) as sc:
         depth_in = slim.utils.last_dimension(inputs.get_shape(), min_rank=4)
         assert depth_in % num_groups == 0, (
-            "depth_in=%d is not divisible by num_groups=%d" %
-            (depth_in, num_groups))
+                "depth_in=%d is not divisible by num_groups=%d" %
+                (depth_in, num_groups))
         # group size, depth = g * n
         group_size = depth_in // num_groups
         net = inputs
@@ -234,9 +234,10 @@ def shufflenet_v1(inputs,
                       '4': [272, 544, 1088], '8': [384, 768, 1536], }
     groups_str = str(groups)
     assert groups_str in ['1', '2', '3', '4', '8'], (
-        'groups must be one of [1, 2, 3, 4, 8], your groups=%d' % groups)
+            'groups must be one of [1, 2, 3, 4, 8], your groups=%d' % groups)
 
     def depth_multi(d): return max(int(d * depth_multiplier), min_depth)
+
     depths = [depth_multi(depth) for depth in Depth_Channels[groups_str]]
     base_depths = [depth // 4 for depth in depths]
     blocks = [

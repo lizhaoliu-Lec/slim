@@ -32,11 +32,11 @@ def group_conv2d_by_depthwise_conv(inputs, num_outputs, kernel_size, num_groups=
                 inputs.get_shape(), min_rank=4)
 
             assert num_outputs % num_groups == 0, (
-                "num_outputs=%d is not divisible by num_groups=%d" %
-                (num_outputs, num_groups))
+                    "num_outputs=%d is not divisible by num_groups=%d" %
+                    (num_outputs, num_groups))
             assert depth_in % num_groups == 0, (
-                "depth_in=%d is not divisible by num_groups=%d" %
-                (depth_in, num_groups))
+                    "depth_in=%d is not divisible by num_groups=%d" %
+                    (depth_in, num_groups))
 
             group_size_in = depth_in // num_groups
             group_size_out = num_outputs // num_groups
@@ -91,11 +91,11 @@ def group_conv2d(inputs, num_outputs, kernel_size, num_groups=1,
                 inputs.get_shape(), min_rank=4)
 
             assert num_outputs % num_groups == 0, (
-                "num_outputs=%d is not divisible by num_groups=%d" %
-                (num_outputs, num_groups))
+                    "num_outputs=%d is not divisible by num_groups=%d" %
+                    (num_outputs, num_groups))
             assert depth_in % num_groups == 0, (
-                "depth_in=%d is not divisible by num_groups=%d" %
-                (depth_in, num_groups))
+                    "depth_in=%d is not divisible by num_groups=%d" %
+                    (depth_in, num_groups))
 
             group_size_out = num_outputs // num_groups
             input_slices = tf.split(inputs, num_groups, axis=-1)
