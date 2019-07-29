@@ -46,59 +46,59 @@ fi
 
 # Download the dataset
 python download_and_convert_data.py \
-  --dataset_name=flowers \
-  --dataset_dir=${DATASET_DIR}
+--dataset_name=flowers \
+--dataset_dir=${DATASET_DIR}
 
 # Fine-tune only the new layers for 3000 steps.
 python train_image_classifier.py \
-  --train_dir=${TRAIN_DIR} \
-  --dataset_name=flowers \
-  --dataset_split_name=train \
-  --dataset_dir=${DATASET_DIR} \
-  --model_name=resnet_v1_50 \
-  --checkpoint_path=${PRETRAINED_CHECKPOINT_DIR}/resnet_v1_50.ckpt \
-  --checkpoint_exclude_scopes=resnet_v1_50/logits \
-  --trainable_scopes=resnet_v1_50/logits \
-  --max_number_of_steps=3000 \
-  --batch_size=32 \
-  --learning_rate=0.01 \
-  --save_interval_secs=60 \
-  --save_summaries_secs=60 \
-  --log_every_n_steps=100 \
-  --optimizer=rmsprop \
-  --weight_decay=0.00004
+--train_dir=${TRAIN_DIR} \
+--dataset_name=flowers \
+--dataset_split_name=train \
+--dataset_dir=${DATASET_DIR} \
+--model_name=resnet_v1_50 \
+--checkpoint_path=${PRETRAINED_CHECKPOINT_DIR}/resnet_v1_50.ckpt \
+--checkpoint_exclude_scopes=resnet_v1_50/logits \
+--trainable_scopes=resnet_v1_50/logits \
+--max_number_of_steps=3000 \
+--batch_size=32 \
+--learning_rate=0.01 \
+--save_interval_secs=60 \
+--save_summaries_secs=60 \
+--log_every_n_steps=100 \
+--optimizer=rmsprop \
+--weight_decay=0.00004
 
 # Run evaluation.
 python eval_image_classifier.py \
-  --checkpoint_path=${TRAIN_DIR} \
-  --eval_dir=${TRAIN_DIR} \
-  --dataset_name=flowers \
-  --dataset_split_name=validation \
-  --dataset_dir=${DATASET_DIR} \
-  --model_name=resnet_v1_50
+--checkpoint_path=${TRAIN_DIR} \
+--eval_dir=${TRAIN_DIR} \
+--dataset_name=flowers \
+--dataset_split_name=validation \
+--dataset_dir=${DATASET_DIR} \
+--model_name=resnet_v1_50
 
 # Fine-tune all the new layers for 1000 steps.
 python train_image_classifier.py \
-  --train_dir=${TRAIN_DIR}/all \
-  --dataset_name=flowers \
-  --dataset_split_name=train \
-  --dataset_dir=${DATASET_DIR} \
-  --checkpoint_path=${TRAIN_DIR} \
-  --model_name=resnet_v1_50 \
-  --max_number_of_steps=1000 \
-  --batch_size=32 \
-  --learning_rate=0.001 \
-  --save_interval_secs=60 \
-  --save_summaries_secs=60 \
-  --log_every_n_steps=100 \
-  --optimizer=rmsprop \
-  --weight_decay=0.00004
+--train_dir=${TRAIN_DIR}/all \
+--dataset_name=flowers \
+--dataset_split_name=train \
+--dataset_dir=${DATASET_DIR} \
+--checkpoint_path=${TRAIN_DIR} \
+--model_name=resnet_v1_50 \
+--max_number_of_steps=1000 \
+--batch_size=32 \
+--learning_rate=0.001 \
+--save_interval_secs=60 \
+--save_summaries_secs=60 \
+--log_every_n_steps=100 \
+--optimizer=rmsprop \
+--weight_decay=0.00004
 
 # Run evaluation.
 python eval_image_classifier.py \
-  --checkpoint_path=${TRAIN_DIR}/all \
-  --eval_dir=${TRAIN_DIR}/all \
-  --dataset_name=flowers \
-  --dataset_split_name=validation \
-  --dataset_dir=${DATASET_DIR} \
-  --model_name=resnet_v1_50
+--checkpoint_path=${TRAIN_DIR}/all \
+--eval_dir=${TRAIN_DIR}/all \
+--dataset_name=flowers \
+--dataset_split_name=validation \
+--dataset_dir=${DATASET_DIR} \
+--model_name=resnet_v1_50

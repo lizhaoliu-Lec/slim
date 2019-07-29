@@ -39,9 +39,7 @@ from __future__ import print_function
 import tensorflow as tf
 
 slim = tf.contrib.slim
-
-
-def trunc_normal(stddev): return tf.truncated_normal_initializer(0.0, stddev)
+trunc_normal = lambda stddev: tf.truncated_normal_initializer(0.0, stddev)
 
 
 def alexnet_v2_arg_scope(weight_decay=0.0005):
@@ -123,8 +121,7 @@ def alexnet_v2(inputs,
                 end_points = slim.utils.convert_collection_to_dict(
                     end_points_collection)
                 if global_pool:
-                    net = tf.reduce_mean(
-                        net, [1, 2], keep_dims=True, name='global_pool')
+                    net = tf.reduce_mean(net, [1, 2], keep_dims=True, name='global_pool')
                     end_points['global_pool'] = net
                 if num_classes:
                     net = slim.dropout(net, dropout_keep_prob, is_training=is_training,

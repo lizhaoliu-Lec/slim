@@ -213,7 +213,7 @@ def mobilenet_v1_base(inputs,
                   or depth_multiplier <= 0, or the target output_stride is not
                   allowed.
     """
-    def depth(d): return max(int(d * depth_multiplier), min_depth)
+    depth = lambda d: max(int(d * depth_multiplier), min_depth)
     end_points = {}
 
     # Used to find thinned depths for each layer.
@@ -365,29 +365,25 @@ def mobilenet_v1(inputs,
             with tf.variable_scope('Logits'):
                 if global_pool:
                     # Global average pooling.
-                    net = tf.reduce_mean(
-                        net, [1, 2], keep_dims=True, name='global_pool')
+                    net = tf.reduce_mean(net, [1, 2], keep_dims=True, name='global_pool')
                     end_points['global_pool'] = net
                 else:
                     # Pooling with a fixed kernel size.
-                    kernel_size = _reduced_kernel_size_for_small_input(net, [
-                                                                       7, 7])
+                    kernel_size = _reduced_kernel_size_for_small_input(net, [7, 7])
                     net = slim.avg_pool2d(net, kernel_size, padding='VALID',
                                           scope='AvgPool_1a')
                     end_points['AvgPool_1a'] = net
                 if not num_classes:
                     return net, end_points
                 # 1 x 1 x 1024
-                net = slim.dropout(
-                    net, keep_prob=dropout_keep_prob, scope='Dropout_1b')
+                net = slim.dropout(net, keep_prob=dropout_keep_prob, scope='Dropout_1b')
                 logits = slim.conv2d(net, num_classes, [1, 1], activation_fn=None,
                                      normalizer_fn=None, scope='Conv2d_1c_1x1')
                 if spatial_squeeze:
                     logits = tf.squeeze(logits, [1, 2], name='SpatialSqueeze')
             end_points['Logits'] = logits
             if prediction_fn:
-                end_points['Predictions'] = prediction_fn(
-                    logits, scope='Predictions')
+                end_points['Predictions'] = prediction_fn(logits, scope='Predictions')
     return logits, end_points
 
 

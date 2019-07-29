@@ -46,59 +46,59 @@ fi
 
 # Download the dataset
 python download_and_convert_data.py \
-  --dataset_name=flowers \
-  --dataset_dir=${DATASET_DIR}
+--dataset_name=flowers \
+--dataset_dir=${DATASET_DIR}
 
 # Fine-tune only the new layers for 2000 steps.
 python train_image_classifier.py \
-  --train_dir=${TRAIN_DIR} \
-  --dataset_name=flowers \
-  --dataset_split_name=train \
-  --dataset_dir=${DATASET_DIR} \
-  --model_name=inception_v1 \
-  --checkpoint_path=${PRETRAINED_CHECKPOINT_DIR}/inception_v1.ckpt \
-  --checkpoint_exclude_scopes=InceptionV1/Logits \
-  --trainable_scopes=InceptionV1/Logits \
-  --max_number_of_steps=3000 \
-  --batch_size=32 \
-  --learning_rate=0.01 \
-  --save_interval_secs=60 \
-  --save_summaries_secs=60 \
-  --log_every_n_steps=100 \
-  --optimizer=rmsprop \
-  --weight_decay=0.00004
+--train_dir=${TRAIN_DIR} \
+--dataset_name=flowers \
+--dataset_split_name=train \
+--dataset_dir=${DATASET_DIR} \
+--model_name=inception_v1 \
+--checkpoint_path=${PRETRAINED_CHECKPOINT_DIR}/inception_v1.ckpt \
+--checkpoint_exclude_scopes=InceptionV1/Logits \
+--trainable_scopes=InceptionV1/Logits \
+--max_number_of_steps=3000 \
+--batch_size=32 \
+--learning_rate=0.01 \
+--save_interval_secs=60 \
+--save_summaries_secs=60 \
+--log_every_n_steps=100 \
+--optimizer=rmsprop \
+--weight_decay=0.00004
 
 # Run evaluation.
 python eval_image_classifier.py \
-  --checkpoint_path=${TRAIN_DIR} \
-  --eval_dir=${TRAIN_DIR} \
-  --dataset_name=flowers \
-  --dataset_split_name=validation \
-  --dataset_dir=${DATASET_DIR} \
-  --model_name=inception_v1
+--checkpoint_path=${TRAIN_DIR} \
+--eval_dir=${TRAIN_DIR} \
+--dataset_name=flowers \
+--dataset_split_name=validation \
+--dataset_dir=${DATASET_DIR} \
+--model_name=inception_v1
 
 # Fine-tune all the new layers for 1000 steps.
 python train_image_classifier.py \
-  --train_dir=${TRAIN_DIR}/all \
-  --dataset_name=flowers \
-  --dataset_split_name=train \
-  --dataset_dir=${DATASET_DIR} \
-  --checkpoint_path=${TRAIN_DIR} \
-  --model_name=inception_v1 \
-  --max_number_of_steps=1000 \
-  --batch_size=32 \
-  --learning_rate=0.001 \
-  --save_interval_secs=60 \
-  --save_summaries_secs=60 \
-  --log_every_n_steps=100 \
-  --optimizer=rmsprop \
-  --weight_decay=0.00004
+--train_dir=${TRAIN_DIR}/all \
+--dataset_name=flowers \
+--dataset_split_name=train \
+--dataset_dir=${DATASET_DIR} \
+--checkpoint_path=${TRAIN_DIR} \
+--model_name=inception_v1 \
+--max_number_of_steps=1000 \
+--batch_size=32 \
+--learning_rate=0.001 \
+--save_interval_secs=60 \
+--save_summaries_secs=60 \
+--log_every_n_steps=100 \
+--optimizer=rmsprop \
+--weight_decay=0.00004
 
 # Run evaluation.
 python eval_image_classifier.py \
-  --checkpoint_path=${TRAIN_DIR}/all \
-  --eval_dir=${TRAIN_DIR}/all \
-  --dataset_name=flowers \
-  --dataset_split_name=validation \
-  --dataset_dir=${DATASET_DIR} \
-  --model_name=inception_v1
+--checkpoint_path=${TRAIN_DIR}/all \
+--eval_dir=${TRAIN_DIR}/all \
+--dataset_name=flowers \
+--dataset_split_name=validation \
+--dataset_dir=${DATASET_DIR} \
+--model_name=inception_v1
