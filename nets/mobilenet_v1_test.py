@@ -46,10 +46,9 @@ class MobilenetV1Test(tf.test.TestCase):
         self.assertListEqual(end_points['Predictions'].get_shape().as_list(),
                              [batch_size, num_classes])
 
-        # 2th test
-        # test function parameter ---- num_classes
-        # with value None
-
+    # 2th test
+    # test function parameter ---- num_classes
+    # with value None
     def testBuildPreLogitsNetwork(self):
         batch_size = 5
         height, width = 224, 224
@@ -62,9 +61,8 @@ class MobilenetV1Test(tf.test.TestCase):
         self.assertFalse('Logits' in end_points)
         self.assertFalse('Predictions' in end_points)
 
-        # 3th test
-        # test base network structure
-
+    # 3th test
+    # test base network structure
     def testBuildBaseNetwork(self):
         batch_size = 5
         height, width = 224, 224

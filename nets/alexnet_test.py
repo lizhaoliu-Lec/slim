@@ -18,10 +18,9 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
+import tensorflow.contrib.slim as slim
 
 from nets import alexnet
-
-slim = tf.contrib.slim
 
 
 class AlexnetV2Test(tf.test.TestCase):

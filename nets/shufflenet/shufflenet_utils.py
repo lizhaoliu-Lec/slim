@@ -4,13 +4,17 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
-
-slim = tf.contrib.slim
+import tensorflow.contrib.slim as slim
 
 
 @slim.add_arg_scope
-def group_conv2d_by_depthwise_conv(inputs, num_outputs, kernel_size, num_groups=1,
-                                   stride=1, rate=1, padding='SAME',
+def group_conv2d_by_depthwise_conv(inputs,
+                                   num_outputs,
+                                   kernel_size,
+                                   num_groups=1,
+                                   stride=1,
+                                   rate=1,
+                                   padding='SAME',
                                    activation_fn=tf.nn.relu,
                                    normalizer_fn=None,
                                    normalizer_params=None,
@@ -68,8 +72,13 @@ def group_conv2d_by_depthwise_conv(inputs, num_outputs, kernel_size, num_groups=
 
 
 @slim.add_arg_scope
-def group_conv2d(inputs, num_outputs, kernel_size, num_groups=1,
-                 stride=1, rate=1, padding='SAME',
+def group_conv2d(inputs,
+                 num_outputs,
+                 kernel_size,
+                 num_groups=1,
+                 stride=1,
+                 rate=1,
+                 padding='SAME',
                  activation_fn=tf.nn.relu,
                  normalizer_fn=None,
                  normalizer_params=None,
@@ -118,3 +127,26 @@ def group_conv2d(inputs, num_outputs, kernel_size, num_groups=1,
             if activation_fn is not None:
                 net = activation_fn(net)
             return net
+
+
+def _channel_shuffle(inputs,
+                     num_groups,
+                     scope=None):
+    if num_groups == 1:
+        return inputs
+    with tf.variable_scope(scope, 'channel_shuffle', [inputs]) as sc:
+        depth_in = slim.utils.last_dimension(inputs.get_shape(), min_rank=4)
+        assert depth_in % num_groups == 0, (
+                "depth_in=%d is not divisible by num_groups=%d" %
+                (depth_in, num_groups))
+        # group size, depth = g * n
+        group_size = depth_in // num_groups
+        net = inputs
+        net_shape = net.shape.as_list()
+        # reshape to (b, h, w, g, n)
+        net = tf.reshape(net, net_shape[:3] + [num_groups, group_size])
+        # transpose to (b, h, w, n, g)
+        net = tf.transpose(net, [0, 1, 2, 4, 3])
+        # reshape back to (b, h, w, depth)
+        net = tf.reshape(net, net_shape)
+        return net
