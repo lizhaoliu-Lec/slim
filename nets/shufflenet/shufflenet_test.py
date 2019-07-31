@@ -18,12 +18,11 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
-import tensorflow.contrib.slim as slim
 
 from nets.shufflenet import shufflenet
 
 
-class ShuffleNetTest(tf.test.TestCase):
+class ShuffleNetV1Test(tf.test.TestCase):
 
     def testBuild(self):
         batch_size = 5
@@ -42,16 +41,25 @@ class ShuffleNetTest(tf.test.TestCase):
 
         inputs = tf.random_uniform((batch_size, height, width, 3))
         logits, end_points = shufflenet.shufflenet_v1(inputs, num_classes)
-        print(logits.op.name)
         self.assertTrue(logits.op.name.startswith(
-            'shufflenet_v1/Logits/SpatialSqueeze'
-        ))
+            'ShufflenetV1/Logits/SpatialSqueeze'))
         self.assertListEqual(logits.get_shape().as_list(),
                              [batch_size, num_classes])
-
         self.assertTrue('Predictions' in end_points)
         self.assertListEqual(end_points['Predictions'].get_shape().as_list(),
                              [batch_size, num_classes])
+
+    def testBuildPreLogitsNetwork(self):
+        batch_size = 5
+        height, width = 224, 224
+        num_classes = None
+
+        inputs = tf.random_uniform((batch_size, height, width, 3))
+        net, end_points = shufflenet.shufflenet_v1(inputs, num_classes)
+        self.assertTrue(net.op.name.startswith('ShufflenetV1/Logits/AvgPool'))
+        self.assertListEqual(net.get_shape().as_list(), [batch_size, 1, 1, 960])
+        self.assertFalse('Logits' in end_points)
+        self.assertFalse('Predictions' in end_points)
 
     def testBuildBaseNetwork(self):
         batch_size = 5
@@ -59,8 +67,147 @@ class ShuffleNetTest(tf.test.TestCase):
 
         inputs = tf.random_uniform((batch_size, height, width, 3))
         net, endpoints = shufflenet.shufflenet_base(inputs)
-        self.assertTrue(net.op.name.startswith('Shufflenet/block3/unit_4'))
-        self.assertListEqual(net.get_shape().as_list(), [batch_size, 7, 7, 960])
+        print(net.op.name)
+        # self.assertTrue(net.op.name.startswith('ShufflenetV1/stage3/shufflenet_unit_3'))
+        self.assertListEqual(net.get_shape().as_list(),
+                             [batch_size, 7, 7, 960])
+
+        expected_endpoints = [
+            # regular conv and pool
+            'Shufflenet/conv1',
+            'Shufflenet/pool1',
+
+            'Shufflenet/stage1/shufflenet_unit/group_conv1/group_conv1',
+            'Shufflenet/stage1/shufflenet_unit/depthwise_conv',
+            'Shufflenet/stage1/shufflenet_unit/group_conv2/group_conv2',
+            'Shufflenet/stage1/shufflenet_unit',
+            'Shufflenet/stage1/shufflenet_unit_1/group_conv1/group0',
+            'Shufflenet/stage1/shufflenet_unit_1/group_conv1/group1',
+            'Shufflenet/stage1/shufflenet_unit_1/group_conv1/group2',
+            'Shufflenet/stage1/shufflenet_unit_1/depthwise_conv',
+            'Shufflenet/stage1/shufflenet_unit_1/group_conv2/group0',
+            'Shufflenet/stage1/shufflenet_unit_1/group_conv2/group1',
+            'Shufflenet/stage1/shufflenet_unit_1/group_conv2/group2',
+            'Shufflenet/stage1/shufflenet_unit_1',
+            'Shufflenet/stage1/shufflenet_unit_2/group_conv1/group0',
+            'Shufflenet/stage1/shufflenet_unit_2/group_conv1/group1',
+            'Shufflenet/stage1/shufflenet_unit_2/group_conv1/group2',
+            'Shufflenet/stage1/shufflenet_unit_2/depthwise_conv',
+            'Shufflenet/stage1/shufflenet_unit_2/group_conv2/group0',
+            'Shufflenet/stage1/shufflenet_unit_2/group_conv2/group1',
+            'Shufflenet/stage1/shufflenet_unit_2/group_conv2/group2',
+            'Shufflenet/stage1/shufflenet_unit_2',
+            'Shufflenet/stage1/shufflenet_unit_3/group_conv1/group0',
+            'Shufflenet/stage1/shufflenet_unit_3/group_conv1/group1',
+            'Shufflenet/stage1/shufflenet_unit_3/group_conv1/group2',
+            'Shufflenet/stage1/shufflenet_unit_3/depthwise_conv',
+            'Shufflenet/stage1/shufflenet_unit_3/group_conv2/group0',
+            'Shufflenet/stage1/shufflenet_unit_3/group_conv2/group1',
+            'Shufflenet/stage1/shufflenet_unit_3/group_conv2/group2',
+            'Shufflenet/stage1/shufflenet_unit_3',
+            'Shufflenet/stage1',
+            'Shufflenet/stage2/shufflenet_unit/group_conv1/group0',
+            'Shufflenet/stage2/shufflenet_unit/group_conv1/group1',
+            'Shufflenet/stage2/shufflenet_unit/group_conv1/group2',
+            'Shufflenet/stage2/shufflenet_unit/depthwise_conv',
+            'Shufflenet/stage2/shufflenet_unit/group_conv2/group0',
+            'Shufflenet/stage2/shufflenet_unit/group_conv2/group1',
+            'Shufflenet/stage2/shufflenet_unit/group_conv2/group2',
+            'Shufflenet/stage2/shufflenet_unit',
+            'Shufflenet/stage2/shufflenet_unit_1/group_conv1/group0',
+            'Shufflenet/stage2/shufflenet_unit_1/group_conv1/group1',
+            'Shufflenet/stage2/shufflenet_unit_1/group_conv1/group2',
+            'Shufflenet/stage2/shufflenet_unit_1/depthwise_conv',
+            'Shufflenet/stage2/shufflenet_unit_1/group_conv2/group0',
+            'Shufflenet/stage2/shufflenet_unit_1/group_conv2/group1',
+            'Shufflenet/stage2/shufflenet_unit_1/group_conv2/group2',
+            'Shufflenet/stage2/shufflenet_unit_1',
+            'Shufflenet/stage2/shufflenet_unit_2/group_conv1/group0',
+            'Shufflenet/stage2/shufflenet_unit_2/group_conv1/group1',
+            'Shufflenet/stage2/shufflenet_unit_2/group_conv1/group2',
+            'Shufflenet/stage2/shufflenet_unit_2/depthwise_conv',
+            'Shufflenet/stage2/shufflenet_unit_2/group_conv2/group0',
+            'Shufflenet/stage2/shufflenet_unit_2/group_conv2/group1',
+            'Shufflenet/stage2/shufflenet_unit_2/group_conv2/group2',
+            'Shufflenet/stage2/shufflenet_unit_2',
+            'Shufflenet/stage2/shufflenet_unit_3/group_conv1/group0',
+            'Shufflenet/stage2/shufflenet_unit_3/group_conv1/group1',
+            'Shufflenet/stage2/shufflenet_unit_3/group_conv1/group2',
+            'Shufflenet/stage2/shufflenet_unit_3/depthwise_conv',
+            'Shufflenet/stage2/shufflenet_unit_3/group_conv2/group0',
+            'Shufflenet/stage2/shufflenet_unit_3/group_conv2/group1',
+            'Shufflenet/stage2/shufflenet_unit_3/group_conv2/group2',
+            'Shufflenet/stage2/shufflenet_unit_3',
+            'Shufflenet/stage2/shufflenet_unit_4/group_conv1/group0',
+            'Shufflenet/stage2/shufflenet_unit_4/group_conv1/group1',
+            'Shufflenet/stage2/shufflenet_unit_4/group_conv1/group2',
+            'Shufflenet/stage2/shufflenet_unit_4/depthwise_conv',
+            'Shufflenet/stage2/shufflenet_unit_4/group_conv2/group0',
+            'Shufflenet/stage2/shufflenet_unit_4/group_conv2/group1',
+            'Shufflenet/stage2/shufflenet_unit_4/group_conv2/group2',
+            'Shufflenet/stage2/shufflenet_unit_4',
+            'Shufflenet/stage2/shufflenet_unit_5/group_conv1/group0',
+            'Shufflenet/stage2/shufflenet_unit_5/group_conv1/group1',
+            'Shufflenet/stage2/shufflenet_unit_5/group_conv1/group2',
+            'Shufflenet/stage2/shufflenet_unit_5/depthwise_conv',
+            'Shufflenet/stage2/shufflenet_unit_5/group_conv2/group0',
+            'Shufflenet/stage2/shufflenet_unit_5/group_conv2/group1',
+            'Shufflenet/stage2/shufflenet_unit_5/group_conv2/group2',
+            'Shufflenet/stage2/shufflenet_unit_5',
+            'Shufflenet/stage2/shufflenet_unit_6/group_conv1/group0',
+            'Shufflenet/stage2/shufflenet_unit_6/group_conv1/group1',
+            'Shufflenet/stage2/shufflenet_unit_6/group_conv1/group2',
+            'Shufflenet/stage2/shufflenet_unit_6/depthwise_conv',
+            'Shufflenet/stage2/shufflenet_unit_6/group_conv2/group0',
+            'Shufflenet/stage2/shufflenet_unit_6/group_conv2/group1',
+            'Shufflenet/stage2/shufflenet_unit_6/group_conv2/group2',
+            'Shufflenet/stage2/shufflenet_unit_6',
+            'Shufflenet/stage2/shufflenet_unit_7/group_conv1/group0',
+            'Shufflenet/stage2/shufflenet_unit_7/group_conv1/group1',
+            'Shufflenet/stage2/shufflenet_unit_7/group_conv1/group2',
+            'Shufflenet/stage2/shufflenet_unit_7/depthwise_conv',
+            'Shufflenet/stage2/shufflenet_unit_7/group_conv2/group0',
+            'Shufflenet/stage2/shufflenet_unit_7/group_conv2/group1',
+            'Shufflenet/stage2/shufflenet_unit_7/group_conv2/group2',
+            'Shufflenet/stage2/shufflenet_unit_7',
+            'Shufflenet/stage2',
+            'Shufflenet/stage3/shufflenet_unit/group_conv1/group0',
+            'Shufflenet/stage3/shufflenet_unit/group_conv1/group1',
+            'Shufflenet/stage3/shufflenet_unit/group_conv1/group2',
+            'Shufflenet/stage3/shufflenet_unit/depthwise_conv',
+            'Shufflenet/stage3/shufflenet_unit/group_conv2/group0',
+            'Shufflenet/stage3/shufflenet_unit/group_conv2/group1',
+            'Shufflenet/stage3/shufflenet_unit/group_conv2/group2',
+            'Shufflenet/stage3/shufflenet_unit',
+            'Shufflenet/stage3/shufflenet_unit_1/group_conv1/group0',
+            'Shufflenet/stage3/shufflenet_unit_1/group_conv1/group1',
+            'Shufflenet/stage3/shufflenet_unit_1/group_conv1/group2',
+            'Shufflenet/stage3/shufflenet_unit_1/depthwise_conv',
+            'Shufflenet/stage3/shufflenet_unit_1/group_conv2/group0',
+            'Shufflenet/stage3/shufflenet_unit_1/group_conv2/group1',
+            'Shufflenet/stage3/shufflenet_unit_1/group_conv2/group2',
+            'Shufflenet/stage3/shufflenet_unit_1',
+            'Shufflenet/stage3/shufflenet_unit_2/group_conv1/group0',
+            'Shufflenet/stage3/shufflenet_unit_2/group_conv1/group1',
+            'Shufflenet/stage3/shufflenet_unit_2/group_conv1/group2',
+            'Shufflenet/stage3/shufflenet_unit_2/depthwise_conv',
+            'Shufflenet/stage3/shufflenet_unit_2/group_conv2/group0',
+            'Shufflenet/stage3/shufflenet_unit_2/group_conv2/group1',
+            'Shufflenet/stage3/shufflenet_unit_2/group_conv2/group2',
+            'Shufflenet/stage3/shufflenet_unit_2',
+            'Shufflenet/stage3/shufflenet_unit_3/group_conv1/group0',
+            'Shufflenet/stage3/shufflenet_unit_3/group_conv1/group1',
+            'Shufflenet/stage3/shufflenet_unit_3/group_conv1/group2',
+            'Shufflenet/stage3/shufflenet_unit_3/depthwise_conv',
+            'Shufflenet/stage3/shufflenet_unit_3/group_conv2/group0',
+            'Shufflenet/stage3/shufflenet_unit_3/group_conv2/group1',
+            'Shufflenet/stage3/shufflenet_unit_3/group_conv2/group2',
+            'Shufflenet/stage3/shufflenet_unit_3',
+            'Shufflenet/stage3',
+        ]
+        expected_endpoints = []
+        self.maxDiff = None
+        self.assertItemsEqual(endpoints.keys(), expected_endpoints)
 
 
 if __name__ == '__main__':

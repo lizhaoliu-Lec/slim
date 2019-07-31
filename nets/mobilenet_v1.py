@@ -109,8 +109,7 @@ from collections import namedtuple
 import functools
 
 import tensorflow as tf
-
-slim = tf.contrib.slim
+import tensorflow.contrib.slim as slim
 
 # Conv and DepthSepConv namedtuple define layers of the MobileNet architecture
 # Conv defines 3x3 convolution layers
@@ -122,19 +121,39 @@ DepthSepConv = namedtuple('DepthSepConv', ['kernel', 'stride', 'depth'])
 
 # MOBILENETV1_CONV_DEFS specifies the MobileNet body
 MOBILENETV1_CONV_DEFS = [
+    # Type / Stride     Filter Shape        Input Size
+    # Conv / s2         3 x 3 x 3 x 32      224 x 224 x 3
     Conv(kernel=[3, 3], stride=2, depth=32),
+    # Conv dw / s1      3 x 3 x 32 dw       112 x 112 x 32
+    # Conv / s1         1 x 1 x 32 x 64     112 x 112 x 32
     DepthSepConv(kernel=[3, 3], stride=1, depth=64),
+    # Conv dw / s2      3 x 3 x 64 dw       112 x 112 x 64
+    # Conv / s1         1 x 1 x 64 x 128    56 x 56 x 64
     DepthSepConv(kernel=[3, 3], stride=2, depth=128),
+    # Conv dw / s1      3 x 3 x 128 dw      56 x 56 x 128
+    # Conv / s1         1 x 1 x 128 x 128   56 x 56 x 128
     DepthSepConv(kernel=[3, 3], stride=1, depth=128),
+    # Conv dw / s2      3 x 3 x 128 dw      56 x 56 x 128
+    # Conv / s1         1 x 1 x 128 x 256   28 x 28 x 128
     DepthSepConv(kernel=[3, 3], stride=2, depth=256),
+    # Conv dw / s1      3 x 3 x 256 dw      28 x 28 x 256
+    # Conv / s1         1 x 1 x 256 x 256   28 x 28 x 256
     DepthSepConv(kernel=[3, 3], stride=1, depth=256),
+    # Conv dw / s2      3 x 3 x 256 dw      28 x 28 x 256
+    # Conv / s1         1 x 1 x 256 x 512   14 x 14 x 256
     DepthSepConv(kernel=[3, 3], stride=2, depth=512),
+    # Conv dw / s1      3 x 3 x 512 dw      14 x 14 x 512 } x 5
+    # Conv / s1         1 x 1 x 512 x 512   14 x 14 x 512 } x 5
     DepthSepConv(kernel=[3, 3], stride=1, depth=512),
     DepthSepConv(kernel=[3, 3], stride=1, depth=512),
     DepthSepConv(kernel=[3, 3], stride=1, depth=512),
     DepthSepConv(kernel=[3, 3], stride=1, depth=512),
     DepthSepConv(kernel=[3, 3], stride=1, depth=512),
+    # Conv dw / s2      3 x 3 x 512 dw      14 x 14 x 512
+    # Conv / s1         1 x 1 x 512 x 1024  7 x 7 x 512
     DepthSepConv(kernel=[3, 3], stride=2, depth=1024),
+    # Conv dw / s1      3 x 3 x 1024 dw    7 x 7 x 1024
+    # Conv / s1         1 x 1 x 1024 x 1024 7 x 7 x 1024
     DepthSepConv(kernel=[3, 3], stride=1, depth=1024)
 ]
 

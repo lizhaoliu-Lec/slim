@@ -88,9 +88,8 @@ class MobilenetV1Test(tf.test.TestCase):
                               'Conv2d_13_depthwise', 'Conv2d_13_pointwise']
         self.assertItemsEqual(end_points.keys(), expected_endpoints)
 
-        # 4th test
-        # test network structrue
-
+    # 4th test
+    # test network structrue
     def testBuildOnlyUptoFinalEndpoint(self):
         batch_size = 5
         height, width = 224, 224
