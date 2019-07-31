@@ -24,46 +24,44 @@ def unit_fn(inputs,
             depth_bottleneck,
             stride,
             num_groups,
-            rate=1,
-            scope=None):
-    with tf.variable_scope(scope, 'Unit', [inputs]):
-        depth_in = slim.utils.last_dimension(inputs.get_shape(), min_rank=4)
-        if stride == 2:
-            ratio = depth // depth_bottleneck
-            depth -= depth_in
-            depth_bottleneck = depth // ratio
-            depth = depth_bottleneck * ratio
+            rate=1):
+    depth_in = slim.utils.last_dimension(inputs.get_shape(), min_rank=4)
+    if stride == 2:
+        ratio = depth // depth_bottleneck
+        depth -= depth_in
+        depth_bottleneck = depth // ratio
+        depth = depth_bottleneck * ratio
 
-        # 1 x 1 group conv
-        residual = group_conv2d(inputs, depth_bottleneck, [1, 1], stride=1,
-                                num_groups=num_groups, scope='Group_Conv2d_1')
-        # channel shuffle
-        residual = _channel_shuffle(residual, num_groups, 'Channel_Shuffle')
+    # 1 x 1 group conv
+    residual = group_conv2d(inputs, depth_bottleneck, [1, 1], stride=1,
+                            num_groups=num_groups, scope='Group_Conv2d_1')
+    # channel shuffle
+    residual = _channel_shuffle(residual, num_groups, 'Channel_Shuffle')
 
-        # 3 x 3 depthwise conv. By passing filters=None
-        # separable_conv2d produces only a depthwise convolution layer
-        residual = slim.separable_conv2d(residual,
-                                         num_outputs=None,
-                                         kernel_size=[3, 3],
-                                         depth_multiplier=1,
-                                         stride=stride,
-                                         padding='SAME',
-                                         rate=rate,
-                                         activation_fn=None,
-                                         scope='Depthwise_Conv2d')
-        residual = group_conv2d(residual, depth, [1, 1], stride=1,
-                                num_groups=num_groups, activation_fn=None,
-                                scope='Group_Conv2d_2')
-        if stride == 1:
-            shortcut = inputs
-            output = tf.nn.relu(shortcut + residual)
-        else:
-            shortcut = slim.avg_pool2d(inputs, [3, 3], stride=2,
-                                       padding='SAME',
-                                       scope='Avg_Pool')
-            output = tf.nn.relu(tf.concat([shortcut, residual], axis=3))
+    # 3 x 3 depthwise conv. By passing filters=None
+    # separable_conv2d produces only a depthwise convolution layer
+    residual = slim.separable_conv2d(residual,
+                                     num_outputs=None,
+                                     kernel_size=[3, 3],
+                                     depth_multiplier=1,
+                                     stride=stride,
+                                     padding='SAME',
+                                     rate=rate,
+                                     activation_fn=None,
+                                     scope='Depthwise_Conv2d')
+    residual = group_conv2d(residual, depth, [1, 1], stride=1,
+                            num_groups=num_groups, activation_fn=None,
+                            scope='Group_Conv2d_2')
+    if stride == 1:
+        shortcut = inputs
+        output = tf.nn.relu(shortcut + residual)
+    else:
+        shortcut = slim.avg_pool2d(inputs, [3, 3], stride=2,
+                                   padding='SAME',
+                                   scope='Avg_Pool')
+        output = tf.nn.relu(tf.concat([shortcut, residual], axis=3))
 
-        return output
+    return output
 
 
 # Shufflenet Stage.
@@ -101,7 +99,7 @@ def stage(scope,
 
     for i in range(num_units):
         arg = dict(
-            scope='Unit_%d' % (i + 1),
+            scope='Unit_%d' % i,
             depth=depth_bottleneck * 4,
             depth_bottleneck=depth_bottleneck,
         )
@@ -145,8 +143,10 @@ def stack_stages(inputs,
         with tf.variable_scope(stage.scope, 'Stage', [net]):
 
             for unit_idx, unit_args in enumerate(stage.args):
-                with tf.variable_scope(stage.args[unit_idx]['scope'], 'Unit', [net]) as unit_sc:
-                    end_point = unit_sc.name
+                with tf.variable_scope(unit_args['scope'], 'Unit', [net]):
+                    unit_args.pop('scope')
+
+                    end_point = 'Stage_%d/Unit_%d' % (stage_idx, unit_idx)
                     if output_stride is not None and current_stride == output_stride:
                         # If we have reached the target output_stride, then we need to employ
                         # atrous convolution with stride=1 and multiply the atrous rate by the
@@ -161,7 +161,6 @@ def stack_stages(inputs,
                         current_stride *= unit_stride
 
                     unit_args['stride'] = unit_stride
-                    # unit_args['scope'] = end_point
                     net = stage.unit_fn(net,
                                         rate=unit_rate,
                                         **unit_args)
@@ -211,36 +210,38 @@ def shufflenet_base(inputs,
     bottleneck_depths = [int(d * bottlenet_compact_ratio) for d in depths]
 
     stages = [
-        stage(scope='Stage1',
+        stage(scope='Stage_0',
               depth_bottleneck=bottleneck_depths[0],
               num_units=4,
               num_groups=num_groups,
               stride=2,
               num_groups_in=1),
-        stage('Stage2',
+        stage(scope='Stage_1',
               depth_bottleneck=bottleneck_depths[1],
               num_units=8,
               stride=2,
               num_groups=num_groups),
-        stage('Stage3',
+        stage(scope='Stage_2',
               depth_bottleneck=bottleneck_depths[2],
               num_units=4,
               stride=2,
               num_groups=num_groups),
     ]
 
-    with tf.variable_scope(scope, 'ShufflenetV1', [inputs]) as sc:
+    with tf.variable_scope(scope, 'ShufflenetV1', [inputs]):
         net = inputs
 
-        end_point = sc.name + '/Conv1'
-        net = slim.conv2d(net, 24, [3, 3], stride=2, padding='SAME', scope='Conv1')
+        end_point = 'Conv2d_0'
+        net = slim.conv2d(net, 24, [3, 3], stride=2, padding='SAME',
+                          scope='Conv2d_0')
         end_points[end_point] = net
 
         if final_endpoint == end_point:
             return net, end_points
 
-        end_point = sc.name + '/MaxPool'
-        net = slim.max_pool2d(net, [3, 3], stride=2, padding='SAME')
+        end_point = 'MaxPool2d_0'
+        net = slim.max_pool2d(net, [3, 3], stride=2, padding='SAME',
+                              scope='MaxPool2d_0')
         end_points[end_point] = net
 
         if final_endpoint == end_point:

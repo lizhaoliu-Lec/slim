@@ -115,10 +115,10 @@ class MobilenetV1Test(tf.test.TestCase):
                 self.assertTrue(out_tensor.op.name.startswith(
                     'MobilenetV1/' + endpoint))
                 self.assertItemsEqual(endpoints[:index + 1], end_points.keys())
-        # 5th test
-        # test function parameter ---- convDefs
-        # with own defined structure
 
+    # 5th test
+    # test function parameter ---- convDefs
+    # with own defined structure
     def testBuildCustomNetworkUsingConvDefs(self):
         batch_size = 5
         height, width = 224, 224
