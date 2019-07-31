@@ -20,7 +20,7 @@ def group_conv2d(inputs,
                  normalizer_params=None,
                  biases_initializer=tf.zeros_initializer(),
                  scope=None):
-    with tf.variable_scope(scope, 'Group_Cnv2d', [inputs]):
+    with tf.variable_scope(scope, 'Group_Conv2d', [inputs]):
         biases_initializer = biases_initializer if normalizer_fn is None else None
         if num_groups == 1:
             return slim.conv2d(inputs, num_outputs, kernel_size,

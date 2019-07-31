@@ -18,6 +18,7 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
+import tensorflow.contrib.slim as slim
 
 from nets.shufflenet import shufflenet
 
@@ -116,6 +117,162 @@ class ShuffleNetV1Test(tf.test.TestCase):
                 self.assertTrue(out_tensor.op.name.startswith(
                     'ShufflenetV1/' + endpoint))
                 self.assertItemsEqual(endpoints[:index + 1], end_points.keys())
+
+    def testBuildCustomNetworkUsingDepthChannelsDefs(self):
+        batch_size = 5
+        height, width = 224, 224
+        depth_channels_defs = {
+            '1': [144, 288, 576],
+            '2': [200, 400, 800],
+            '3': [240, 960, 1024],
+            '4': [272, 544, 1088],
+            '8': [384, 768, 1536],
+        }
+
+        inputs = tf.random_uniform((batch_size, height, width, 3))
+        net, end_points = shufflenet.shufflenet_base(
+            inputs, final_endpoint='Stage_1/Unit_7', depth_channels_defs=depth_channels_defs)
+        self.assertTrue(net.op.name.startswith('ShufflenetV1/Stage_1/Unit_7'))
+        self.assertListEqual(net.get_shape().as_list(),
+                             [batch_size, 14, 14, 960])
+        expected_endpoints = [
+            # regular conv and pool
+            'Conv2d_0', 'MaxPool2d_0',
+            # Stage 1 with 4 units
+            'Stage_0/Unit_0', 'Stage_0/Unit_1',
+            'Stage_0/Unit_2', 'Stage_0/Unit_3',
+            # Stage 2 with 8 units
+            'Stage_1/Unit_0', 'Stage_1/Unit_1',
+            'Stage_1/Unit_2', 'Stage_1/Unit_3',
+            'Stage_1/Unit_4', 'Stage_1/Unit_5',
+            'Stage_1/Unit_6', 'Stage_1/Unit_7', ]
+        self.assertItemsEqual(end_points.keys(), expected_endpoints)
+
+    def testBuildAndCheckAllEndPointsUptoStage_2_Sub_Unit_3(self):
+        batch_size = 5
+        height, width = 224, 224
+
+        inputs = tf.random_uniform((batch_size, height, width, 3))
+        with slim.arg_scope([slim.conv2d, slim.separable_conv2d],
+                            normalizer_fn=slim.batch_norm):
+            _, end_points = shufflenet.shufflenet_base(
+                inputs, final_endpoint='Stage_2/Unit_3')
+
+        endpoints_shapes = {
+            # regular conv and pool
+            'Conv2d_0': [batch_size, 112, 112, 24],
+            'MaxPool2d_0': [batch_size, 56, 56, 24],
+            # Stage 1 with 4 units
+            'Stage_0/Unit_0': [batch_size, 28, 28, 240],
+            'Stage_0/Unit_1': [batch_size, 28, 28, 240],
+            'Stage_0/Unit_2': [batch_size, 28, 28, 240],
+            'Stage_0/Unit_3': [batch_size, 28, 28, 240],
+            # Stage 2 with 8 units
+            'Stage_1/Unit_0': [batch_size, 14, 14, 480],
+            'Stage_1/Unit_1': [batch_size, 14, 14, 480],
+            'Stage_1/Unit_2': [batch_size, 14, 14, 480],
+            'Stage_1/Unit_3': [batch_size, 14, 14, 480],
+            'Stage_1/Unit_4': [batch_size, 14, 14, 480],
+            'Stage_1/Unit_5': [batch_size, 14, 14, 480],
+            'Stage_1/Unit_6': [batch_size, 14, 14, 480],
+            'Stage_1/Unit_7': [batch_size, 14, 14, 480],
+            # Stage 3 with 4 units
+            'Stage_2/Unit_0': [batch_size, 7, 7, 960],
+            'Stage_2/Unit_1': [batch_size, 7, 7, 960],
+            'Stage_2/Unit_2': [batch_size, 7, 7, 960],
+            'Stage_2/Unit_3': [batch_size, 7, 7, 960],
+        }
+
+        self.assertItemsEqual(endpoints_shapes.keys(), end_points.keys())
+        for endpoint_name, expected_shape in endpoints_shapes.items():
+            self.assertTrue(endpoint_name in end_points)
+            self.assertListEqual(end_points[endpoint_name].get_shape().as_list(),
+                                 expected_shape)
+
+    def testOutputStride16BuildAndCheckAllEndPointsUptoStage_2_Sub_Unit_3(self):
+        batch_size = 5
+        height, width = 224, 224
+        output_stride = 16
+
+        inputs = tf.random_uniform((batch_size, height, width, 3))
+        with slim.arg_scope([slim.conv2d, slim.separable_conv2d],
+                            normalizer_fn=slim.batch_norm):
+            _, end_points = shufflenet.shufflenet_base(
+                inputs, output_stride=output_stride,
+                final_endpoint='Stage_2/Unit_3')
+
+        endpoints_shapes = {
+            # regular conv and pool
+            'Conv2d_0': [batch_size, 112, 112, 24],
+            'MaxPool2d_0': [batch_size, 56, 56, 24],
+            # Stage 1 with 4 units
+            'Stage_0/Unit_0': [batch_size, 28, 28, 240],
+            'Stage_0/Unit_1': [batch_size, 28, 28, 240],
+            'Stage_0/Unit_2': [batch_size, 28, 28, 240],
+            'Stage_0/Unit_3': [batch_size, 28, 28, 240],
+            # Stage 2 with 8 units
+            'Stage_1/Unit_0': [batch_size, 14, 14, 480],
+            'Stage_1/Unit_1': [batch_size, 14, 14, 480],
+            'Stage_1/Unit_2': [batch_size, 14, 14, 480],
+            'Stage_1/Unit_3': [batch_size, 14, 14, 480],
+            'Stage_1/Unit_4': [batch_size, 14, 14, 480],
+            'Stage_1/Unit_5': [batch_size, 14, 14, 480],
+            'Stage_1/Unit_6': [batch_size, 14, 14, 480],
+            'Stage_1/Unit_7': [batch_size, 14, 14, 480],
+            # Stage 3 with 4 units
+            'Stage_2/Unit_0': [batch_size, 14, 14, 960],
+            'Stage_2/Unit_1': [batch_size, 14, 14, 960],
+            'Stage_2/Unit_2': [batch_size, 14, 14, 960],
+            'Stage_2/Unit_3': [batch_size, 14, 14, 960],
+        }
+
+        self.assertItemsEqual(endpoints_shapes.keys(), end_points.keys())
+        for endpoint_name, expected_shape in endpoints_shapes.items():
+            self.assertTrue(endpoint_name in end_points)
+            self.assertListEqual(end_points[endpoint_name].get_shape().as_list(),
+                                 expected_shape)
+
+    def testOutputStride8BuildAndCheckAllEndPointsUptoStage_2_Sub_Unit_3(self):
+        batch_size = 5
+        height, width = 224, 224
+        output_stride = 8
+
+        inputs = tf.random_uniform((batch_size, height, width, 3))
+        with slim.arg_scope([slim.conv2d, slim.separable_conv2d],
+                            normalizer_fn=slim.batch_norm):
+            _, end_points = shufflenet.shufflenet_base(
+                inputs, output_stride=output_stride,
+                final_endpoint='Stage_2/Unit_3')
+
+        endpoints_shapes = {
+            # regular conv and pool
+            'Conv2d_0': [batch_size, 112, 112, 24],
+            'MaxPool2d_0': [batch_size, 56, 56, 24],
+            # Stage 1 with 4 units
+            'Stage_0/Unit_0': [batch_size, 28, 28, 240],
+            'Stage_0/Unit_1': [batch_size, 28, 28, 240],
+            'Stage_0/Unit_2': [batch_size, 28, 28, 240],
+            'Stage_0/Unit_3': [batch_size, 28, 28, 240],
+            # Stage 2 with 8 units
+            'Stage_1/Unit_0': [batch_size, 28, 28, 480],
+            'Stage_1/Unit_1': [batch_size, 28, 28, 480],
+            'Stage_1/Unit_2': [batch_size, 28, 28, 480],
+            'Stage_1/Unit_3': [batch_size, 28, 28, 480],
+            'Stage_1/Unit_4': [batch_size, 28, 28, 480],
+            'Stage_1/Unit_5': [batch_size, 28, 28, 480],
+            'Stage_1/Unit_6': [batch_size, 28, 28, 480],
+            'Stage_1/Unit_7': [batch_size, 28, 28, 480],
+            # Stage 3 with 4 units
+            'Stage_2/Unit_0': [batch_size, 28, 28, 960],
+            'Stage_2/Unit_1': [batch_size, 28, 28, 960],
+            'Stage_2/Unit_2': [batch_size, 28, 28, 960],
+            'Stage_2/Unit_3': [batch_size, 28, 28, 960],
+        }
+        self.assertItemsEqual(endpoints_shapes.keys(), end_points.keys())
+        for endpoint_name, expected_shape in endpoints_shapes.items():
+            self.assertTrue(endpoint_name in end_points)
+            self.assertListEqual(end_points[endpoint_name].get_shape().as_list(),
+                                 expected_shape)
 
 
 if __name__ == '__main__':

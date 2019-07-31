@@ -141,10 +141,9 @@ class MobilenetV1Test(tf.test.TestCase):
                               'Conv2d_3_depthwise', 'Conv2d_3_pointwise']
         self.assertItemsEqual(end_points.keys(), expected_endpoints)
 
-        # 6th test
-        # test function parameters ---- end_point
-        # with value Conv2d_13_pointwise
-
+    # 6th test
+    # test function parameters ---- end_point
+    # with value Conv2d_13_pointwise
     def testBuildAndCheckAllEndPointsUptoConv2d_13(self):
         batch_size = 5
         height, width = 224, 224
@@ -196,10 +195,10 @@ class MobilenetV1Test(tf.test.TestCase):
             self.assertListEqual(
                 explicit_padding_end_points[endpoint_name].get_shape().as_list(),
                 expected_shape)
-        # 7th test
-        # test function parameter ---- output_stride
-        # with value of 16
 
+    # 7th test
+    # test function parameter ---- output_stride
+    # with value of 16
     def testOutputStride16BuildAndCheckAllEndPointsUptoConv2d_13(self):
         batch_size = 5
         height, width = 224, 224
@@ -254,10 +253,9 @@ class MobilenetV1Test(tf.test.TestCase):
                 explicit_padding_end_points[endpoint_name].get_shape().as_list(),
                 expected_shape)
 
-        # 8th test
-        # test function parameter ---- output_stride
-        # with value of 8
-
+    # 8th test
+    # test function parameter ---- output_stride
+    # with value of 8
     def testOutputStride8BuildAndCheckAllEndPointsUptoConv2d_13(self):
         batch_size = 5
         height, width = 224, 224
@@ -312,9 +310,8 @@ class MobilenetV1Test(tf.test.TestCase):
                 explicit_padding_end_points[endpoint_name].get_shape().as_list(),
                 expected_shape)
 
-        # 9th test
-        # test ???
-
+    # 9th test
+    # test ???
     def testBuildAndCheckAllEndPointsApproximateFaceNet(self):
         batch_size = 5
         height, width = 128, 128
