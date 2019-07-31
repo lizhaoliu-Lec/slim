@@ -24,9 +24,10 @@ def unit_fn(inputs,
             depth_bottleneck,
             stride,
             num_groups,
-            rate=1):
+            rate=1,
+            reached_output_stride=False):
     depth_in = slim.utils.last_dimension(inputs.get_shape(), min_rank=4)
-    if stride == 2:
+    if stride == 2 or reached_output_stride:
         ratio = depth // depth_bottleneck
         depth -= depth_in
         depth_bottleneck = depth // ratio
@@ -34,9 +35,9 @@ def unit_fn(inputs,
 
     # 1 x 1 group conv
     residual = group_conv2d(inputs, depth_bottleneck, [1, 1], stride=1,
-                            num_groups=num_groups, scope='Group_Conv2d_1')
+                            num_groups=num_groups)
     # channel shuffle
-    residual = _channel_shuffle(residual, num_groups, 'Channel_Shuffle')
+    residual = _channel_shuffle(residual, num_groups)
 
     # 3 x 3 depthwise conv. By passing filters=None
     # separable_conv2d produces only a depthwise convolution layer
@@ -47,19 +48,25 @@ def unit_fn(inputs,
                                      stride=stride,
                                      padding='SAME',
                                      rate=rate,
-                                     activation_fn=None,
-                                     scope='Depthwise_Conv2d')
+                                     activation_fn=None)
     residual = group_conv2d(residual, depth, [1, 1], stride=1,
-                            num_groups=num_groups, activation_fn=None,
-                            scope='Group_Conv2d_2')
-    if stride == 1:
+                            num_groups=num_groups, activation_fn=None)
+
+    if stride == 2 or reached_output_stride:
+        if reached_output_stride:
+            pool_stride = 1
+        else:
+            pool_stride = 2
+        shortcut = slim.avg_pool2d(inputs, [3, 3], stride=pool_stride,
+                                   padding='SAME')
+        output = tf.nn.relu(tf.concat([shortcut, residual], axis=3))
+
+    elif stride == 1:
         shortcut = inputs
         output = tf.nn.relu(shortcut + residual)
+
     else:
-        shortcut = slim.avg_pool2d(inputs, [3, 3], stride=2,
-                                   padding='SAME',
-                                   scope='Avg_Pool')
-        output = tf.nn.relu(tf.concat([shortcut, residual], axis=3))
+        raise ValueError('expect stride of 1 or 2, but got `%d`' % stride)
 
     return output
 
@@ -155,15 +162,16 @@ def stack_stages(inputs,
                         unit_rate = rate
                         rate *= unit_args['stride']
 
+                        if unit_args['stride'] == 2:
+                            unit_args['reached_output_stride'] = True
+
                     else:
                         unit_stride = unit_args['stride']
                         unit_rate = 1
                         current_stride *= unit_stride
 
                     unit_args['stride'] = unit_stride
-                    net = stage.unit_fn(net,
-                                        rate=unit_rate,
-                                        **unit_args)
+                    net = stage.unit_fn(net, rate=unit_rate, **unit_args)
 
                     end_points[end_point] = net
                     if end_point == final_endpoint:
@@ -246,6 +254,9 @@ def shufflenet_base(inputs,
 
         if final_endpoint == end_point:
             return net, end_points
+
+        if output_stride:
+            output_stride = output_stride // 4
 
         net, stage_end_points = stack_stages(net, stages, output_stride, final_endpoint)
 
