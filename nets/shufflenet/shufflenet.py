@@ -3,24 +3,30 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import collections
+from collections import namedtuple
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
 
 from nets.shufflenet.shufflenet_utils import group_conv2d, _channel_shuffle
 
+DEPTH_CHANNELS_DEFS = {
+    '1': [144, 288, 576],
+    '2': [200, 400, 800],
+    '3': [240, 480, 960],
+    '4': [272, 544, 1088],
+    '8': [384, 768, 1536],
+}
+
 
 @slim.add_arg_scope
-def shufflenet_unit(inputs,
-                    depth,
-                    depth_bottleneck,
-                    stride,
-                    groups,
-                    rate=1,
-                    outputs_collections=None,
-                    scope=None,
-                    use_bounded_activations=False):
-    with tf.variable_scope(scope, 'shufflenet', [inputs]) as sc:
+def unit_fn(inputs,
+            depth,
+            depth_bottleneck,
+            stride,
+            num_groups,
+            rate=1,
+            scope=None):
+    with tf.variable_scope(scope, 'Unit', [inputs]):
         depth_in = slim.utils.last_dimension(inputs.get_shape(), min_rank=4)
         if stride == 2:
             ratio = depth // depth_bottleneck
@@ -28,81 +34,102 @@ def shufflenet_unit(inputs,
             depth_bottleneck = depth // ratio
             depth = depth_bottleneck * ratio
 
-        # 1x1 group conv
+        # 1 x 1 group conv
         residual = group_conv2d(inputs, depth_bottleneck, [1, 1], stride=1,
-                                num_groups=groups, scope='group_conv1')
+                                num_groups=num_groups, scope='Group_Conv2d_1')
         # channel shuffle
-        residual = _channel_shuffle(residual, groups, 'channel_shuffle')
-        # 3x3 depthwise conv. By passing filters=None
+        residual = _channel_shuffle(residual, num_groups, 'Channel_Shuffle')
+
+        # 3 x 3 depthwise conv. By passing filters=None
         # separable_conv2d produces only a depthwise convolution layer
-        residual = slim.separable_conv2d(residual, None, [3, 3],
+        residual = slim.separable_conv2d(residual,
+                                         num_outputs=None,
+                                         kernel_size=[3, 3],
                                          depth_multiplier=1,
                                          stride=stride,
+                                         padding='SAME',
                                          rate=rate,
                                          activation_fn=None,
-                                         scope='depthwise_conv')
+                                         scope='Depthwise_Conv2d')
         residual = group_conv2d(residual, depth, [1, 1], stride=1,
-                                num_groups=groups, activation_fn=None,
-                                scope='group_conv2')
+                                num_groups=num_groups, activation_fn=None,
+                                scope='Group_Conv2d_2')
         if stride == 1:
             shortcut = inputs
             output = tf.nn.relu(shortcut + residual)
         else:
-            shortcut = slim.avg_pool2d(inputs, [3, 3], stride=2, scope='pool1',
-                                       padding='SAME')
+            shortcut = slim.avg_pool2d(inputs, [3, 3], stride=2,
+                                       padding='SAME',
+                                       scope='Avg_Pool')
             output = tf.nn.relu(tf.concat([shortcut, residual], axis=3))
 
-        return slim.utils.collect_named_outputs(outputs_collections,
-                                                sc.original_name_scope,
-                                                output)
+        return output
 
 
-class Block(collections.namedtuple('Block', ['scope', 'unit_fn', 'args'])):
-    """A named tuple describing a ResNet block.
-
-    Its parts are:
-      scope: The scope of the `Block`.
-      unit_fn: The ShuffleNet unit function which takes as input a `Tensor` and
-        returns another `Tensor` with the output of the ShuffleNet unit.
-      args: A list of length equal to the number of units in the `Block`. The list
-        contains one (depth, depth_bottleneck, stride, groups) tuple for each unit in the
-        block to serve as argument to unit_fn.
-    """
+# Shufflenet Stage.
+# scope: The scope of the `Stage`.
+# unit_fn: The ShuffleNet unit function which takes as input a `Tensor` and
+#   returns another `Tensor` with the output of the ShuffleNet unit.
+# args: A list of length equal to the number of units in the `Stage`. The list
+#   contains one (depth, depth_bottleneck, stride, groups) tuple for each unit in the
+#   Stage to serve as argument to unit_fn.
+Stage = namedtuple('Stage', ['scope', 'unit_fn', 'args'])
 
 
-def shufflenet_block(scope, base_depth, num_units, stride, groups, groups_in=None):
-    """Helper function for creating a shufflenet bottleneck block.
+def stage(scope,
+          depth_bottleneck,
+          num_units,
+          num_groups,
+          stride,
+          num_groups_in=None):
+    """Helper function for creating a shufflenet.
 
     Args:
-      scope: The scope of the block.
-      base_depth: The depth of the bottleneck layer for each unit.
-      num_units: The number of units in the block.
+      scope:
+      depth_bottleneck: The depth of the bottleneck layer for each unit.
+      num_units: The number of units in the stage.
+      num_groups: number of groups for each unit except the first unit.
       stride: The stride of the block, implemented as a stride in the last unit.
-        All other units have stride=1.
-      groups_in: number of groups for first unit.
-      groups: number of groups for each unit except the first unit.
+        All other units have stride = 1.
+      num_groups_in: number of groups for first unit.
 
     Returns:
-      A shufflenet bottleneck block.
+      A shufflenet bottleneck Stage.
     """
-    return Block(scope, shufflenet_unit, [{
-        'depth': base_depth * 4,
-        'depth_bottleneck': base_depth,
-        'stride': stride,
-        'groups': groups if groups_in is None else groups_in
-    }] + [{
-        'depth': base_depth * 4,
-        'depth_bottleneck': base_depth,
-        'stride': 1,
-        'groups': groups
-    }] * (num_units - 1))
+
+    args = []
+
+    for i in range(num_units):
+        arg = dict(
+            scope='Unit_%d' % (i + 1),
+            depth=depth_bottleneck * 4,
+            depth_bottleneck=depth_bottleneck,
+        )
+        if i == 0:
+            arg.update({
+                'stride': stride,
+                'num_groups': num_groups if num_groups_in is None else num_groups_in
+            })
+        else:
+            arg.update({
+                'stride': 1,
+                'num_groups': num_groups
+            })
+
+        args.append(arg)
+
+    return Stage(scope=scope,
+                 unit_fn=unit_fn,
+                 args=args)
 
 
 @slim.add_arg_scope
-def stack_blocks_dense(net,
-                       blocks,
-                       output_stride=None,
-                       outputs_collections=None):
+def stack_stages(inputs,
+                 stages,
+                 output_stride=None,
+                 # TODO (lizhao liu)
+                 # configure endpoint correctly
+                 final_endpoint='xxxxxxxxxx'):
     # The current_stride variable keeps track of the effective stride of the
     # activations. This allows us to invoke atrous convolution whenever applying
     # the next residual unit would result in the activations having stride larger
@@ -112,193 +139,252 @@ def stack_blocks_dense(net,
     # The atrous convolution rate parameter.
     rate = 1
 
-    for block in blocks:
-        with tf.variable_scope(block.scope, 'block', [net]) as sc:
-            for i, unit in enumerate(block.args):
-                if output_stride is not None and current_stride > output_stride:
-                    raise ValueError(
-                        'The target output_stride cannot be reached.')
+    end_points = {}
+    net = inputs
+    for stage_idx, stage in enumerate(stages):
+        with tf.variable_scope(stage.scope, 'Stage', [net]):
 
-                with tf.variable_scope('unit_%d' % (i + 1), values=[net]):
-                    # If we have reached the target output_stride, then we need to employ
-                    # atrous convolution with stride=1 and multiply the atrous rate by the
-                    # current unit's stride for use in subsequent layers.
+            for unit_idx, unit_args in enumerate(stage.args):
+                with tf.variable_scope(stage.args[unit_idx]['scope'], 'Unit', [net]) as unit_sc:
+                    end_point = unit_sc.name
                     if output_stride is not None and current_stride == output_stride:
-                        net = block.unit_fn(
-                            net, rate=rate, **dict(unit, stride=1))
-                        rate *= unit.get('stride', 1)
+                        # If we have reached the target output_stride, then we need to employ
+                        # atrous convolution with stride=1 and multiply the atrous rate by the
+                        # current unit's stride for use in subsequent layers.
+                        unit_stride = 1
+                        unit_rate = rate
+                        rate *= unit_args['stride']
 
                     else:
-                        net = block.unit_fn(net, rate=1, **unit)
-                        current_stride *= unit.get('stride', 1)
-            net = slim.utils.collect_named_outputs(
-                outputs_collections, sc.name, net)
+                        unit_stride = unit_args['stride']
+                        unit_rate = 1
+                        current_stride *= unit_stride
 
-    if output_stride is not None and current_stride != output_stride:
-        raise ValueError('The target output_stride cannot be reached.')
+                    unit_args['stride'] = unit_stride
+                    # unit_args['scope'] = end_point
+                    net = stage.unit_fn(net,
+                                        rate=unit_rate,
+                                        **unit_args)
 
-    return net
+                    end_points[end_point] = net
+                    if end_point == final_endpoint:
+                        return net, end_points
+
+    return net, end_points
 
 
 def shufflenet_base(inputs,
-                    is_training=True,
-                    dropout_keep_prob=None,
-                    depth_multiplier=1.0,
+                    # TODO (lizhao liu)
+                    # configure endpoint correctly
+                    final_endpoint='xxxxxxxxxxxx',
                     min_depth=8,
-                    groups=3,
-                    bottlenet_compact_rate=4,
+                    depth_multiplier=1.0,
+                    depth_channels_defs=None,
+                    num_groups=3,
+                    bottlenet_compact_ratio=0.25,
                     output_stride=None,
-                    include_root_block=True,
-                    reuse=None,
                     scope=None):
     """Shufflenet base."""
-    Depth_Channels = {'1': [144, 288, 576], '2': [200, 400, 800], '3': [240, 480, 960],
-                      '4': [272, 544, 1088], '8': [384, 768, 1536], }
-    groups_str = str(groups)
-    assert groups_str in ['1', '2', '3', '4', '8'], (
-            'groups must be one of [1, 2, 3, 4, 8], your groups=%d' % groups)
+    depth = lambda d: max(int(d * depth_multiplier), min_depth)
+    end_points = {}
 
-    def depth_multi(d):
-        return max(int(d * depth_multiplier), min_depth)
+    # Used to find thinned depths for each layer.
+    if depth_multiplier <= 0:
+        raise ValueError('depth_multiplier is not greater than zero.')
 
-    depths = [depth_multi(depth) for depth in Depth_Channels[groups_str]]
-    base_depths = [depth // bottlenet_compact_rate for depth in depths]
-    blocks = [
-        shufflenet_block('block1', base_depth=base_depths[0], num_units=4,
-                         stride=2, groups=groups, groups_in=1),
-        shufflenet_block('block2', base_depth=base_depths[1], num_units=8,
-                         stride=2, groups=groups),
-        shufflenet_block('block3', base_depth=base_depths[2], num_units=4,
-                         stride=2, groups=groups),
+    if depth_channels_defs is None:
+        depth_channels_defs = DEPTH_CHANNELS_DEFS
+
+    if output_stride is not None and output_stride not in [8, 16, 32]:
+        raise ValueError('Only allowed output_stride values are 8, 16, 32.')
+
+    if str(num_groups) not in depth_channels_defs.keys():
+        raise ValueError('expect num_groups in `%s`, but got `%s`' % (
+            str(depth_channels_defs.keys()), str(num_groups)))
+
+    depths = [depth(d) for d in depth_channels_defs[str(num_groups)]]
+
+    if len(depths) != 3:
+        raise ValueError('expect `3` depths for `%d` groups, but got `%s`' % (
+            num_groups, str(depth_channels_defs[str(num_groups)])))
+
+    bottleneck_depths = [int(d * bottlenet_compact_ratio) for d in depths]
+
+    stages = [
+        stage(scope='Stage1',
+              depth_bottleneck=bottleneck_depths[0],
+              num_units=4,
+              num_groups=num_groups,
+              stride=2,
+              num_groups_in=1),
+        stage('Stage2',
+              depth_bottleneck=bottleneck_depths[1],
+              num_units=8,
+              stride=2,
+              num_groups=num_groups),
+        stage('Stage3',
+              depth_bottleneck=bottleneck_depths[2],
+              num_units=4,
+              stride=2,
+              num_groups=num_groups),
     ]
 
-    with tf.variable_scope(scope, 'Shufflenet', [inputs], reuse=reuse) as sc:
-        end_points_collection = sc.name + '_end_points'
-        with slim.arg_scope([slim.conv2d, shufflenet_unit, stack_blocks_dense,
-                             slim.separable_conv2d],
-                            outputs_collections=end_points_collection):
-            with slim.arg_scope([slim.batch_norm, slim.dropout],
-                                is_training=is_training,
-                                dropout_keep_prop=dropout_keep_prob):
-                end_points = {}
-                net = inputs
-                if include_root_block:
-                    if output_stride is not None:
-                        if output_stride % 4 != 0:
-                            raise ValueError(
-                                'The output_stride needs to be a multiple of 4.')
-                        output_stride /= 4
-                    net = slim.conv2d(inputs, 24, 3, stride=2,
-                                      padding='SAME', scope='conv1')
-                    net = slim.max_pool2d(net, [3, 3], stride=2, scope='pool1')
-                else:
-                    height = inputs.get_shape()[1]
-                    stride = 2 if height > 32 else 1
-                    net = slim.conv2d(net, 24, 3, stride=stride, scope='conv1')
+    with tf.variable_scope(scope, 'ShufflenetV1', [inputs]) as sc:
+        net = inputs
 
-                net = stack_blocks_dense(net, blocks, output_stride)
+        end_point = sc.name + '/Conv1'
+        net = slim.conv2d(net, 24, [3, 3], stride=2, padding='SAME', scope='Conv1')
+        end_points[end_point] = net
 
-                # Convert end_points_collection into a dictionary of end_points.
-                end_points.update(slim.utils.convert_collection_to_dict(
-                    end_points_collection))
+        if final_endpoint == end_point:
+            return net, end_points
 
-                return net, end_points
+        end_point = sc.name + '/MaxPool'
+        net = slim.max_pool2d(net, [3, 3], stride=2, padding='SAME')
+        end_points[end_point] = net
 
+        if final_endpoint == end_point:
+            return net, end_points
 
-shufflenet_base.default_image_size = 224
+        net, stage_end_points = stack_stages(net, stages, output_stride, final_endpoint)
 
-
-def shufflenet_v1(inputs,
-                  num_classes=1001,
-                  prediction_fn=slim.softmax,
-                  dropout_keep_prob=None,
-                  is_training=False,
-                  output_stride=None,
-                  include_root_block=True,
-                  reuse=None,
-                  scope='Shufflenet'):
-    """Shufflenet base."""
-    with tf.variable_scope(scope, 'Shufflenet', reuse=reuse) as scope:
-        net, end_points = shufflenet_base(inputs,
-                                          is_training,
-                                          dropout_keep_prob,
-                                          output_stride=output_stride,
-                                          include_root_block=include_root_block,
-                                          reuse=reuse,
-                                          scope=scope)
-
-        with tf.variable_scope('Logits'):
-            # Global average pooling.
-            net = tf.reduce_mean(
-                net, [1, 2], name='pool5', keepdims=True)
-
-            end_points['global_pool'] = net
-            if not num_classes:
-                return net, end_points
-
-            # 1 x 1 x num_classes
-            net = slim.conv2d(net, num_classes, [1, 1], activation_fn=None,
-                              normalizer_fn=None, scope='Conv2d_xxxxx_1x1')
-
-            net = tf.squeeze(net, [1, 2], name='SpatialSqueeze')
-
-        end_points['Logits'] = net
-
-        if prediction_fn:
-            end_points['Predictions'] = prediction_fn(net, scope='Predictions')
+        end_points.update(stage_end_points)
 
         return net, end_points
 
 
-shufflenet_v1.default_image_size = shufflenet_base.default_image_size
+def shufflenet_v1(inputs,
+                  num_classes=1000,
+                  dropout_keep_prob=0.999,
+                  is_training=True,
+                  min_depth=8,
+                  depth_multiplier=1.0,
+                  depth_channels_defs=None,
+                  prediction_fn=slim.softmax,
+                  spatial_squeeze=True,
+                  reuse=None,
+                  scope='ShufflenetV1',
+                  global_pool=False):
+    """Shufflenet v1 model for classification."""
+
+    input_shape = inputs.get_shape().as_list()
+    if len(input_shape) != 4:
+        raise ValueError('Invalid input tensor rank, expected 4, was: %d' %
+                         len(input_shape))
+    with tf.variable_scope(scope, 'ShufflenetV1', [inputs], reuse=reuse) as scope:
+        with slim.arg_scope([slim.batch_norm, slim.dropout],
+                            is_training=is_training):
+
+            net, end_points = shufflenet_base(inputs, scope=scope,
+                                              min_depth=min_depth,
+                                              depth_multiplier=depth_multiplier,
+                                              depth_channels_defs=depth_channels_defs)
+
+            with tf.variable_scope('Logits'):
+                if global_pool:
+                    # Global average pooling.
+                    net = tf.reduce_mean(net, [1, 2], keepdims=True, name='global_pool')
+                    end_points['global_pool'] = net
+                else:
+                    # Pooling with fixed kernel size
+                    kernel_size = _reduced_kernel_size_for_small_input(net, [7, 7])
+                    net = slim.avg_pool2d(net, kernel_size, padding='VALID',
+                                          scope='AvgPool_1a')
+                    end_points['AvgPool_1a'] = net
+
+                if not num_classes:
+                    return net, end_points
+                # 1 x 1 x (576 | 800 | 960 | 1088 | 1536)
+                net = slim.dropout(net, keep_prob=dropout_keep_prob, scope='Dropout_1b')
+                logits = slim.conv2d(net, num_classes, [1, 1], activation_fn=None,
+                                     normalizer_fn=None, scope='Conv2d_1c_1x1')
+
+                if spatial_squeeze:
+                    logits = tf.squeeze(logits, [1, 2], name='SpatialSqueeze')
+            end_points['Logits'] = logits
+
+            if prediction_fn:
+                end_points['Predictions'] = prediction_fn(logits, scope='Predictions')
+
+        return logits, end_points
 
 
-def shufflenet_v1_arg_scope(is_training=True,
-                            weight_decay=0.00004,
-                            stddev=0.09,
-                            regularize_depthwise=False):
-    """Defines the default Shufflenet_V1 arg scope.
+shufflenet_v1.default_image_size = 224
+
+
+def _reduced_kernel_size_for_small_input(input_tensor, kernel_size):
+    """Define kernel size which is automatically reduced for small input.
+
+    If the shape of the input images is unknown at graph construction time this
+    function assumes that the input images are large enough.
 
     Args:
-      is_training: Whether or not we're training the model.
+      input_tensor: input tensor of size [batch_size, height, width, channels].
+      kernel_size: desired kernel size of length 2: [kernel_height, kernel_width]
+
+    Returns:
+      a tensor with the kernel size.
+    """
+    shape = input_tensor.get_shape().as_list()
+    if shape[1] is None or shape[2] is None:
+        kernel_size_out = kernel_size
+    else:
+        kernel_size_out = [min(shape[1], kernel_size[0]),
+                           min(shape[2], kernel_size[1])]
+
+    return kernel_size_out
+
+
+def shufflenet_v1_arg_scope(
+        is_training=True,
+        weight_decay=0.00004,
+        stddev=0.09,
+        regularize_depthwise=False,
+        batch_norm_decay=0.9997,
+        batch_norm_epsilon=0.001,
+        batch_norm_updates_collections=tf.GraphKeys.UPDATE_OPS,
+        normalizer_fn=slim.batch_norm):
+    """Defines the default ShufflenetV1 arg scope.
+
+    Args:
+      is_training: Whether or not we're training the model. If this is set to
+        None, the parameter is not added to the batch_norm arg_scope.
       weight_decay: The weight decay to use for regularizing the model.
       stddev: The standard deviation of the trunctated normal weight initializer.
       regularize_depthwise: Whether or not apply regularization on depthwise.
+      batch_norm_decay: Decay for batch norm moving average.
+      batch_norm_epsilon: Small float added to variance to avoid dividing by zero
+        in batch norm.
+      batch_norm_updates_collections: Collection for the update ops for
+        batch norm.
+      normalizer_fn: Normalization function to apply after convolution.
 
     Returns:
-      An `arg_scope` to use for the mobilenet v1 model.
+      An `arg_scope` to use for the shufflenet v1 model.
     """
     batch_norm_params = {
-        'is_training': is_training,
         'center': True,
         'scale': True,
-        'decay': 0.9997,
-        'epsilon': 0.001,
+        'decay': batch_norm_decay,
+        'epsilon': batch_norm_epsilon,
+        'updates_collections': batch_norm_updates_collections,
     }
-
-    if stddev < 0:
-        weight_intitializer = slim.initializers.xavier_initializer()
-    else:
-        weight_intitializer = tf.truncated_normal_initializer(stddev=stddev)
+    if is_training is not None:
+        batch_norm_params['is_training'] = is_training
 
     # Set weight_decay for weights in Conv and DepthSepConv layers.
-
+    weights_init = tf.truncated_normal_initializer(stddev=stddev)
     regularizer = tf.contrib.layers.l2_regularizer(weight_decay)
     if regularize_depthwise:
         depthwise_regularizer = regularizer
     else:
         depthwise_regularizer = None
-    with slim.arg_scope([slim.conv2d, slim.separable_conv2d],
-                        weights_initializer=weight_intitializer,
-                        activation_fn=tf.nn.relu,
-                        normalizer_fn=slim.batch_norm):
-        with slim.arg_scope([group_conv2d],
-                            activation_fn=tf.nn.relu,
-                            normalizer_fn=slim.batch_norm):
-            with slim.arg_scope([slim.batch_norm],
-                                **batch_norm_params):
-                with slim.arg_scope([slim.conv2d],
-                                    weights_regularizer=regularizer):
-                    with slim.arg_scope([slim.separable_conv2d],
-                                        weights_regularizer=depthwise_regularizer) as sc:
-                        return sc
+
+    with slim.arg_scope([slim.conv2d, slim.separable_conv2d, group_conv2d],
+                        weights_initializer=weights_init,
+                        activation_fn=tf.nn.relu6, normalizer_fn=slim.batch_norm):
+        with slim.arg_scope([slim.batch_norm], **batch_norm_params):
+            with slim.arg_scope([slim.conv2d], weights_regularizer=regularizer):
+                with slim.arg_scope([slim.separable_conv2d],
+                                    weights_regularizer=depthwise_regularizer) as sc:
+                    return sc
