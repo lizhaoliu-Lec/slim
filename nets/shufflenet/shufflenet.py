@@ -1,8 +1,73 @@
-# TensorFlow mandates these.
+"""ShuffleNet v1.
+
+100% Shufflenet V1 (group=3, base) with input size 224x224:
+
+See shufflenet_v1()
++------------------------------------------+
+|                Layer                     |
++------------------------------------------+
+|        ShufflenetV1/Conv2d_0             |
+|        ShufflenetV1/MaxPool2d_0          |
+|        ShufflenetV1/Stage_0/Unit_0       |
+|        ShufflenetV1/Stage_0/Unit_1       |
+|        ShufflenetV1/Stage_0/Unit_2       |
+|        ShufflenetV1/Stage_0/Unit_3       |
+|        ShufflenetV1/Stage_1/Unit_0       |
+|        ShufflenetV1/Stage_1/Unit_1       |
+|        ShufflenetV1/Stage_1/Unit_2       |
+|        ShufflenetV1/Stage_1/Unit_3       |
+|        ShufflenetV1/Stage_1/Unit_4       |
+|        ShufflenetV1/Stage_1/Unit_5       |
+|        ShufflenetV1/Stage_1/Unit_6       |
+|        ShufflenetV1/Stage_1/Unit_7       |
+|        ShufflenetV1/Stage_2/Unit_0       |
+|        ShufflenetV1/Stage_2/Unit_1       |
+|        ShufflenetV1/Stage_2/Unit_2       |
+|        ShufflenetV1/Stage_2/Unit_3       |
++------------------------------------------+
+|           FLOPs: 1,382,575,746           |
++------------------------------------------+
+|        Trainable params: 892,488         |
++------------------------------------------+
+
+
+200% Shufflenet V1 (group=3, base) with input size 224x224:
+
+See shufflenet_v1()
++------------------------------------------+
+|                Layer                     |
++------------------------------------------+
+|        ShufflenetV1/Conv2d_0             |
+|        ShufflenetV1/MaxPool2d_0          |
+|        ShufflenetV1/Stage_0/Unit_0       |
+|        ShufflenetV1/Stage_0/Unit_1       |
+|        ShufflenetV1/Stage_0/Unit_2       |
+|        ShufflenetV1/Stage_0/Unit_3       |
+|        ShufflenetV1/Stage_1/Unit_0       |
+|        ShufflenetV1/Stage_1/Unit_1       |
+|        ShufflenetV1/Stage_1/Unit_2       |
+|        ShufflenetV1/Stage_1/Unit_3       |
+|        ShufflenetV1/Stage_1/Unit_4       |
+|        ShufflenetV1/Stage_1/Unit_5       |
+|        ShufflenetV1/Stage_1/Unit_6       |
+|        ShufflenetV1/Stage_1/Unit_7       |
+|        ShufflenetV1/Stage_2/Unit_0       |
+|        ShufflenetV1/Stage_2/Unit_1       |
+|        ShufflenetV1/Stage_2/Unit_2       |
+|        ShufflenetV1/Stage_2/Unit_3       |
++------------------------------------------+
+|           FLOPs: 5,090,010,786           |
++------------------------------------------+
+|       Trainable params: 3,502,728        |
++------------------------------------------+
+
+"""
+
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import functools
 from collections import namedtuple
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
@@ -25,21 +90,41 @@ def unit_fn(inputs,
             stride,
             num_groups,
             rate=1,
-            reached_output_stride=False):
+            spatial_down=False,
+            first_stage_first_unit=False):
+    """
+
+    Args:
+        inputs:
+        depth:
+        depth_bottleneck:
+        stride:
+        num_groups:
+        rate:
+        spatial_down:
+        first_stage_first_unit:
+
+    Returns:
+
+    """
     depth_in = slim.utils.last_dimension(inputs.get_shape(), min_rank=4)
-    if stride == 2 or reached_output_stride:
+    if spatial_down:
         # ratio = depth // depth_bottleneck
         depth -= depth_in
         # depth_bottleneck = depth // ratio
         # depth = depth_bottleneck * ratio
 
+    if depth_bottleneck % num_groups != 0:
+        depth_bottleneck = depth_bottleneck - depth_bottleneck % num_groups
+
     residual = group_conv2d(inputs, depth_bottleneck, [1, 1], stride=1,
-                            num_groups=num_groups)
+                            num_groups=num_groups if not first_stage_first_unit else 1)
     # print(num_groups, '*** num groups ***')
     # print(residual.get_shape().as_list(), '*** after group conv1 ***')
     # print(residual.graph.get_collection('trainable_variables'), '*** after group conv1 graph ***')
     # channel shuffle
-    residual = _channel_shuffle(residual, num_groups)
+    if not first_stage_first_unit:
+        residual = _channel_shuffle(residual, num_groups)
 
     # 3 x 3 depthwise conv. By passing filters=None
     # separable_conv2d produces only a depthwise convolution layer
@@ -58,21 +143,14 @@ def unit_fn(inputs,
     # print(residual.get_shape().as_list(), '*** after group conv2 ***')
     # print(residual.graph.get_collection('trainable_variables'), '*** after group conv2 graph ***')
 
-    if stride == 2 or reached_output_stride:
-        if reached_output_stride:
-            pool_stride = 1
-        else:
-            pool_stride = 2
-        shortcut = slim.avg_pool2d(inputs, [3, 3], stride=pool_stride,
+    if spatial_down:
+        shortcut = slim.avg_pool2d(inputs, [3, 3], stride=stride,
                                    padding='SAME')
         output = tf.nn.relu(tf.concat([shortcut, residual], axis=3))
 
-    elif stride == 1:
+    else:
         shortcut = inputs
         output = tf.nn.relu(shortcut + residual)
-
-    else:
-        raise ValueError('expect stride of 1 or 2, but got `%d`' % stride)
 
     return output
 
@@ -88,19 +166,23 @@ Stage = namedtuple('Stage', ['scope', 'unit_fn', 'args'])
 
 
 def stage(scope,
-          depth_bottleneck,
+          depth,
+          bottlenet_compact_ratio,
           num_units,
           num_groups,
-          stride):
+          stride,
+          min_depth=None):
     """Helper function for creating a shufflenet.
 
     Args:
       scope:
-      depth_bottleneck: The depth of the bottleneck layer for each unit.
+      depth: The depth of the bottleneck layer for each unit.
+      bottlenet_compact_ratio: float,
       num_units: The number of units in the stage.
       num_groups: number of groups for each unit except the first unit.
       stride: The stride of the block, implemented as a stride in the last unit.
         All other units have stride = 1.
+      min_depth: int,
 
     Returns:
       A shufflenet bottleneck Stage.
@@ -109,15 +191,18 @@ def stage(scope,
     args = []
 
     for i in range(num_units):
+        depth_bottleneck = max(int(bottlenet_compact_ratio * depth), min_depth) if min_depth else int(
+            bottlenet_compact_ratio * depth)
         arg = dict(
             scope='Unit_%d' % i,
-            depth=depth_bottleneck * 4,
+            depth=depth,
             depth_bottleneck=depth_bottleneck,
             num_groups=num_groups,
         )
         if i == 0:
             arg.update({
                 'stride': stride,
+                'spatial_down': True
             })
         else:
             arg.update({
@@ -136,6 +221,17 @@ def stack_stages(inputs,
                  stages,
                  output_stride=None,
                  final_endpoint='Stage_2/Unit_3'):
+    """
+
+    Args:
+        inputs:
+        stages:
+        output_stride:
+        final_endpoint:
+
+    Returns:
+
+    """
     # The current_stride variable keeps track of the effective stride of the
     # activations. This allows us to invoke atrous convolution whenever applying
     # the next residual unit would result in the activations having stride larger
@@ -163,13 +259,13 @@ def stack_stages(inputs,
                         unit_rate = rate
                         rate *= unit_args['stride']
 
-                        if unit_args['stride'] == 2:
-                            unit_args['reached_output_stride'] = True
-
                     else:
                         unit_stride = unit_args['stride']
                         unit_rate = 1
                         current_stride *= unit_stride
+
+                    if not stage_idx and not unit_idx:
+                        unit_args['first_stage_first_unit'] = True
 
                     unit_args['stride'] = unit_stride
                     net = stage.unit_fn(net, rate=unit_rate, **unit_args)
@@ -181,17 +277,36 @@ def stack_stages(inputs,
     return net, end_points
 
 
-def shufflenet_base(inputs,
-                    final_endpoint='Stage_2/Unit_3',
-                    min_depth=8,
-                    depth_multiplier=1.0,
-                    depth_channels_defs=None,
-                    num_groups=3,
-                    bottlenet_compact_ratio=0.25,
-                    output_stride=None,
-                    scope=None):
-    """Shufflenet base."""
+def shufflenet_v1_base(inputs,
+                       final_endpoint='Stage_2/Unit_3',
+                       min_depth=8,
+                       min_depth_constraint_bottlenet=True,
+                       depth_multiplier=1.0,
+                       depth_channels_defs=None,
+                       num_groups=3,
+                       bottlenet_compact_ratio=0.25,
+                       output_stride=None,
+                       scope=None):
+    """
+
+    Args:
+        inputs:
+        final_endpoint:
+        min_depth:
+        min_depth_constraint_bottlenet:
+        depth_multiplier:
+        depth_channels_defs:
+        num_groups:
+        bottlenet_compact_ratio:
+        output_stride:
+        scope:
+
+    Returns:
+
+    """
+
     depth = lambda d: max(int(d * depth_multiplier), min_depth)
+
     end_points = {}
 
     # Used to find thinned depths for each layer.
@@ -202,7 +317,7 @@ def shufflenet_base(inputs,
         depth_channels_defs = DEPTH_CHANNELS_DEFS
 
     if output_stride is not None and output_stride not in [8, 16, 32]:
-        raise ValueError('Only allowed output_stride values are 8, 16, 32.')
+        raise ValueError('expect output_stride values: 8, 16, 32, but got `%d`' % output_stride)
 
     if str(num_groups) not in depth_channels_defs.keys():
         raise ValueError('expect num_groups in `%s`, but got `%s`' % (
@@ -210,28 +325,31 @@ def shufflenet_base(inputs,
 
     depths = [depth(d) for d in depth_channels_defs[str(num_groups)]]
 
-    if len(depths) != 3:
-        raise ValueError('expect `3` depths for `%d` groups, but got `%s`' % (
-            num_groups, str(depth_channels_defs[str(num_groups)])))
-
-    bottleneck_depths = [int(d * bottlenet_compact_ratio) for d in depths]
+    if not _valid_depth(depths, num_groups, bottlenet_compact_ratio):
+        raise ValueError('depths `%s` is not a valid depths for group conv.' % str(depths))
 
     stages = [
         stage(scope='Stage_0',
-              depth_bottleneck=bottleneck_depths[0],
+              depth=depths[0],
+              bottlenet_compact_ratio=bottlenet_compact_ratio,
               num_units=4,
               num_groups=num_groups,
-              stride=2),
+              stride=2,
+              min_depth=min_depth if min_depth_constraint_bottlenet else None),
         stage(scope='Stage_1',
-              depth_bottleneck=bottleneck_depths[1],
+              depth=depths[1],
+              bottlenet_compact_ratio=bottlenet_compact_ratio,
               num_units=8,
+              num_groups=num_groups,
               stride=2,
-              num_groups=num_groups),
+              min_depth=min_depth if min_depth_constraint_bottlenet else None),
         stage(scope='Stage_2',
-              depth_bottleneck=bottleneck_depths[2],
+              depth=depths[2],
+              bottlenet_compact_ratio=bottlenet_compact_ratio,
               num_units=4,
+              num_groups=num_groups,
               stride=2,
-              num_groups=num_groups),
+              min_depth=min_depth if min_depth_constraint_bottlenet else None),
     ]
 
     with tf.variable_scope(scope, 'ShufflenetV1', [inputs]):
@@ -269,14 +387,36 @@ def shufflenet_v1(inputs,
                   dropout_keep_prob=0.999,
                   is_training=True,
                   min_depth=8,
+                  min_depth_constraint_bottlenet=True,
                   depth_multiplier=1.0,
                   depth_channels_defs=None,
+                  num_groups=3,
                   prediction_fn=slim.softmax,
                   spatial_squeeze=True,
                   reuse=None,
                   scope='ShufflenetV1',
                   global_pool=False):
-    """Shufflenet v1 model for classification."""
+    """
+
+    Args:
+        inputs:
+        num_classes:
+        dropout_keep_prob:
+        is_training:
+        min_depth:
+        min_depth_constraint_bottlenet:
+        depth_multiplier:
+        depth_channels_defs:
+        num_groups:
+        prediction_fn:
+        spatial_squeeze:
+        reuse:
+        scope:
+        global_pool:
+
+    Returns:
+
+    """
 
     input_shape = inputs.get_shape().as_list()
     if len(input_shape) != 4:
@@ -286,10 +426,11 @@ def shufflenet_v1(inputs,
         with slim.arg_scope([slim.batch_norm, slim.dropout],
                             is_training=is_training):
 
-            net, end_points = shufflenet_base(inputs, scope=scope,
-                                              min_depth=min_depth,
-                                              depth_multiplier=depth_multiplier,
-                                              depth_channels_defs=depth_channels_defs)
+            net, end_points = shufflenet_v1_base(inputs, scope=scope,
+                                                 min_depth=min_depth,
+                                                 min_depth_constraint_bottlenet=min_depth_constraint_bottlenet,
+                                                 depth_multiplier=depth_multiplier,
+                                                 depth_channels_defs=depth_channels_defs, num_groups=num_groups)
 
             with tf.variable_scope('Logits'):
                 if global_pool:
@@ -323,6 +464,43 @@ def shufflenet_v1(inputs,
 shufflenet_v1.default_image_size = 224
 
 
+def wrapped_partial(func, *args, **kwargs):
+    partial_func = functools.partial(func, *args, **kwargs)
+    functools.update_wrapper(partial_func, func)
+    return partial_func
+
+
+shufflenet_v1_025_1 = wrapped_partial(shufflenet_v1, depth_multiplier=0.25, num_groups=1)
+shufflenet_v1_025_2 = wrapped_partial(shufflenet_v1, depth_multiplier=0.25, num_groups=2)
+shufflenet_v1_025_3 = wrapped_partial(shufflenet_v1, depth_multiplier=0.25, num_groups=3)
+shufflenet_v1_025_4 = wrapped_partial(shufflenet_v1, depth_multiplier=0.25, num_groups=4)
+shufflenet_v1_025_8 = wrapped_partial(shufflenet_v1, depth_multiplier=0.25, num_groups=8)
+
+shufflenet_v1_050_1 = wrapped_partial(shufflenet_v1, depth_multiplier=0.5, num_groups=1)
+shufflenet_v1_050_2 = wrapped_partial(shufflenet_v1, depth_multiplier=0.5, num_groups=2)
+shufflenet_v1_050_3 = wrapped_partial(shufflenet_v1, depth_multiplier=0.5, num_groups=3)
+shufflenet_v1_050_4 = wrapped_partial(shufflenet_v1, depth_multiplier=0.5, num_groups=4)
+shufflenet_v1_050_8 = wrapped_partial(shufflenet_v1, depth_multiplier=0.5, num_groups=8)
+
+shufflenet_v1_100_1 = wrapped_partial(shufflenet_v1, depth_multiplier=1.0, num_groups=1)
+shufflenet_v1_100_2 = wrapped_partial(shufflenet_v1, depth_multiplier=1.0, num_groups=2)
+shufflenet_v1_100_3 = wrapped_partial(shufflenet_v1, depth_multiplier=1.0, num_groups=3)
+shufflenet_v1_100_4 = wrapped_partial(shufflenet_v1, depth_multiplier=1.0, num_groups=4)
+shufflenet_v1_100_8 = wrapped_partial(shufflenet_v1, depth_multiplier=1.0, num_groups=8)
+
+shufflenet_v1_150_1 = wrapped_partial(shufflenet_v1, depth_multiplier=1.5, num_groups=1)
+shufflenet_v1_150_2 = wrapped_partial(shufflenet_v1, depth_multiplier=1.5, num_groups=2)
+shufflenet_v1_150_3 = wrapped_partial(shufflenet_v1, depth_multiplier=1.5, num_groups=3)
+shufflenet_v1_150_4 = wrapped_partial(shufflenet_v1, depth_multiplier=1.5, num_groups=4)
+shufflenet_v1_150_8 = wrapped_partial(shufflenet_v1, depth_multiplier=1.5, num_groups=8)
+
+shufflenet_v1_200_1 = wrapped_partial(shufflenet_v1, depth_multiplier=2.0, num_groups=1)
+shufflenet_v1_200_2 = wrapped_partial(shufflenet_v1, depth_multiplier=2.0, num_groups=2)
+shufflenet_v1_200_3 = wrapped_partial(shufflenet_v1, depth_multiplier=2.0, num_groups=3)
+shufflenet_v1_200_4 = wrapped_partial(shufflenet_v1, depth_multiplier=2.0, num_groups=4)
+shufflenet_v1_200_8 = wrapped_partial(shufflenet_v1, depth_multiplier=2.0, num_groups=8)
+
+
 def _reduced_kernel_size_for_small_input(input_tensor, kernel_size):
     """Define kernel size which is automatically reduced for small input.
 
@@ -344,6 +522,30 @@ def _reduced_kernel_size_for_small_input(input_tensor, kernel_size):
                            min(shape[2], kernel_size[1])]
 
     return kernel_size_out
+
+
+def _valid_depth(depths, num_groups):
+    """
+
+    Args:
+        depths:
+        num_groups:
+
+    Returns:
+
+    """
+    depths_length = len(depths)
+    if depths_length != 3:
+        raise ValueError('expect depths length of `3`, but got `%d`' % depths_length)
+    for i in range(depths_length):
+        depth = depths[i]
+        if depth % num_groups != 0:
+            print('depth % num_groups != 0')
+            return False
+        if not i:
+            if (depths[i] - depths[i - 1]) % num_groups != 0:
+                return False
+    return True
 
 
 def shufflenet_v1_arg_scope(

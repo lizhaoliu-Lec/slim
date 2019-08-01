@@ -21,6 +21,25 @@ def group_conv2d(inputs,
                  normalizer_params=None,
                  biases_initializer=tf.zeros_initializer(),
                  scope=None):
+    """
+
+    Args:
+        inputs:
+        num_outputs:
+        kernel_size:
+        num_groups:
+        stride:
+        rate:
+        padding:
+        activation_fn:
+        normalizer_fn:
+        normalizer_params:
+        biases_initializer:
+        scope:
+
+    Returns:
+
+    """
     with tf.variable_scope(scope, 'Group_Conv2d', [inputs]):
         biases_initializer = biases_initializer if normalizer_fn is None else None
         if num_groups == 1:
@@ -69,6 +88,16 @@ def group_conv2d(inputs,
 def _channel_shuffle(inputs,
                      num_groups,
                      scope=None):
+    """
+
+    Args:
+        inputs:
+        num_groups:
+        scope:
+
+    Returns:
+
+    """
     if num_groups == 1:
         return inputs
     with tf.variable_scope(scope, 'Channel_Shuffle', [inputs]):
