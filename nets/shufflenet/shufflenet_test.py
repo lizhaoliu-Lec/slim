@@ -21,6 +21,7 @@ import tensorflow as tf
 import tensorflow.contrib.slim as slim
 
 from nets.shufflenet import shufflenet
+from nets.shufflenet.shufflenet_utils import group_conv2d
 
 
 class ShuffleNetV1Test(tf.test.TestCase):
@@ -273,6 +274,88 @@ class ShuffleNetV1Test(tf.test.TestCase):
             self.assertTrue(endpoint_name in end_points)
             self.assertListEqual(end_points[endpoint_name].get_shape().as_list(),
                                  expected_shape)
+
+    def testBuildAndCheckAllEndPointsApproximateFaceNet(self):
+        batch_size = 5
+        height, width = 128, 128
+
+        inputs = tf.random_uniform((batch_size, height, width, 3))
+        with slim.arg_scope([slim.conv2d, slim.separable_conv2d],
+                            normalizer_fn=slim.batch_norm):
+            _, end_points = shufflenet.shufflenet_base(
+                inputs, final_endpoint='Stage_2/Unit_3', depth_multiplier=0.75)
+
+        # For the Conv2d_0 layer FaceNet has depth=16
+        endpoints_shapes = {
+            # regular conv and pool
+            'Conv2d_0': [batch_size, 64, 64, 24],
+            'MaxPool2d_0': [batch_size, 32, 32, 24],
+            # Stage 1 with 4 units
+            'Stage_0/Unit_0': [batch_size, 16, 16, 180],
+            'Stage_0/Unit_1': [batch_size, 16, 16, 180],
+            'Stage_0/Unit_2': [batch_size, 16, 16, 180],
+            'Stage_0/Unit_3': [batch_size, 16, 16, 180],
+            # Stage 2 with 8 units
+            'Stage_1/Unit_0': [batch_size, 8, 8, 360],
+            'Stage_1/Unit_1': [batch_size, 8, 8, 360],
+            'Stage_1/Unit_2': [batch_size, 8, 8, 360],
+            'Stage_1/Unit_3': [batch_size, 8, 8, 360],
+            'Stage_1/Unit_4': [batch_size, 8, 8, 360],
+            'Stage_1/Unit_5': [batch_size, 8, 8, 360],
+            'Stage_1/Unit_6': [batch_size, 8, 8, 360],
+            'Stage_1/Unit_7': [batch_size, 8, 8, 360],
+            # Stage 3 with 4 units
+            'Stage_2/Unit_0': [batch_size, 4, 4, 720],
+            'Stage_2/Unit_1': [batch_size, 4, 4, 720],
+            'Stage_2/Unit_2': [batch_size, 4, 4, 720],
+            'Stage_2/Unit_3': [batch_size, 4, 4, 720],
+        }
+        self.assertItemsEqual(endpoints_shapes.keys(), end_points.keys())
+        for endpoint_name, expected_shape in endpoints_shapes.items():
+            self.assertTrue(endpoint_name in end_points)
+            self.assertListEqual(end_points[endpoint_name].get_shape().as_list(),
+                                 expected_shape)
+
+    def testModelHasExpectedNumberOfParameters(self):
+        batch_size = 5
+        height, width = 224, 224
+        inputs = tf.random_uniform((batch_size, height, width, 3))
+
+        endpoints_num_params = {
+            # regular conv and pool
+            'Conv2d_0': 720, 'MaxPool2d_0': 720,
+            # Stage 1 with 4 units
+            'Stage_0/Unit_0': 6498, 'Stage_0/Unit_1': 17718,
+            'Stage_0/Unit_2': 28938, 'Stage_0/Unit_3': 40158,
+            # Stage 2 with 8 units
+            'Stage_1/Unit_0': 51378, 'Stage_1/Unit_1': 93018,
+            'Stage_1/Unit_2': 134658, 'Stage_1/Unit_3': 176298,
+            'Stage_1/Unit_4': 217938, 'Stage_1/Unit_5': 259578,
+            'Stage_1/Unit_6': 301218, 'Stage_1/Unit_7': 342858,
+            # Stage 3 with 4 units
+            'Stage_2/Unit_0': 384498, 'Stage_2/Unit_1': 544578,
+            'Stage_2/Unit_2': 704658, 'Stage_2/Unit_3': 864738,
+        }
+
+        for end_point in endpoints_num_params:
+            with slim.arg_scope([slim.conv2d, slim.separable_conv2d, group_conv2d],
+                                normalizer_fn=slim.batch_norm) as sc:
+                shufflenet.shufflenet_base(inputs, final_endpoint=end_point)
+                total_params, _ = slim.model_analyzer.analyze_vars(
+                    slim.get_model_variables())
+
+                self.assertAlmostEqual(endpoints_num_params[end_point], total_params)
+                del sc
+
+    def testBuildEndPointsWithDepthMultiplierLessThanOne(self):
+        batch_size = 5
+        height, width = 224, 224
+        num_classes = 1000
+
+        inputs = tf.random_uniform((batch_size, height, width, 3))
+        _, end_points = shufflenet.shufflenet_v1(inputs, num_classes)
+
+        endpoint_keys = [key for key in end_points.keys() if key.startswith('Stage')]
 
 
 if __name__ == '__main__':

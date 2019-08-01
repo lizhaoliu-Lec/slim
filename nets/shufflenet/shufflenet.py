@@ -33,9 +33,11 @@ def unit_fn(inputs,
         depth_bottleneck = depth // ratio
         depth = depth_bottleneck * ratio
 
-    # 1 x 1 group conv
     residual = group_conv2d(inputs, depth_bottleneck, [1, 1], stride=1,
                             num_groups=num_groups)
+    print(num_groups, '*** num groups ***')
+    print(residual.get_shape().as_list(), '*** after group conv1 ***')
+    print(residual.graph.get_collection('trainable_variables'), '*** after group conv1 graph ***')
     # channel shuffle
     residual = _channel_shuffle(residual, num_groups)
 
@@ -49,8 +51,12 @@ def unit_fn(inputs,
                                      padding='SAME',
                                      rate=rate,
                                      activation_fn=None)
+    print(residual.get_shape().as_list(), '*** after separable_conv2d ***')
+    print(residual.graph.get_collection('trainable_variables'), '*** after separable_conv2d graph ***')
     residual = group_conv2d(residual, depth, [1, 1], stride=1,
                             num_groups=num_groups, activation_fn=None)
+    print(residual.get_shape().as_list(), '*** after group conv2 ***')
+    print(residual.graph.get_collection('trainable_variables'), '*** after group conv2 graph ***')
 
     if stride == 2 or reached_output_stride:
         if reached_output_stride:
@@ -85,8 +91,7 @@ def stage(scope,
           depth_bottleneck,
           num_units,
           num_groups,
-          stride,
-          num_groups_in=None):
+          stride):
     """Helper function for creating a shufflenet.
 
     Args:
@@ -96,7 +101,6 @@ def stage(scope,
       num_groups: number of groups for each unit except the first unit.
       stride: The stride of the block, implemented as a stride in the last unit.
         All other units have stride = 1.
-      num_groups_in: number of groups for first unit.
 
     Returns:
       A shufflenet bottleneck Stage.
@@ -109,16 +113,15 @@ def stage(scope,
             scope='Unit_%d' % i,
             depth=depth_bottleneck * 4,
             depth_bottleneck=depth_bottleneck,
+            num_groups=num_groups,
         )
         if i == 0:
             arg.update({
                 'stride': stride,
-                'num_groups': num_groups if num_groups_in is None else num_groups_in
             })
         else:
             arg.update({
                 'stride': 1,
-                'num_groups': num_groups
             })
 
         args.append(arg)
@@ -132,9 +135,7 @@ def stage(scope,
 def stack_stages(inputs,
                  stages,
                  output_stride=None,
-                 # TODO (lizhao liu)
-                 # configure endpoint correctly
-                 final_endpoint='xxxxxxxxxx'):
+                 final_endpoint='Stage_2/Unit_3'):
     # The current_stride variable keeps track of the effective stride of the
     # activations. This allows us to invoke atrous convolution whenever applying
     # the next residual unit would result in the activations having stride larger
@@ -181,9 +182,7 @@ def stack_stages(inputs,
 
 
 def shufflenet_base(inputs,
-                    # TODO (lizhao liu)
-                    # configure endpoint correctly
-                    final_endpoint='xxxxxxxxxxxx',
+                    final_endpoint='Stage_2/Unit_3',
                     min_depth=8,
                     depth_multiplier=1.0,
                     depth_channels_defs=None,
@@ -222,8 +221,7 @@ def shufflenet_base(inputs,
               depth_bottleneck=bottleneck_depths[0],
               num_units=4,
               num_groups=num_groups,
-              stride=2,
-              num_groups_in=1),
+              stride=2),
         stage(scope='Stage_1',
               depth_bottleneck=bottleneck_depths[1],
               num_units=8,
@@ -241,6 +239,7 @@ def shufflenet_base(inputs,
 
         end_point = 'Conv2d_0'
         net = slim.conv2d(net, 24, [3, 3], stride=2, padding='SAME',
+                          biases_initializer=None,
                           scope='Conv2d_0')
         end_points[end_point] = net
 

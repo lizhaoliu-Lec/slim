@@ -365,9 +365,8 @@ class MobilenetV1Test(tf.test.TestCase):
                 explicit_padding_end_points[endpoint_name].get_shape().as_list(),
                 expected_shape)
 
-        # 10th test
-        # test number of parameters
-
+    # 10th test
+    # test number of parameters
     def testModelHasExpectedNumberOfParameters(self):
         batch_size = 5
         height, width = 224, 224
@@ -379,10 +378,9 @@ class MobilenetV1Test(tf.test.TestCase):
                 slim.get_model_variables())
             self.assertAlmostEqual(3217920, total_params)
 
-        # 11th test
-        # test function parameter ---- depth_multiplier
-        # with value of 0.5
-
+    # 11th test
+    # test function parameter ---- depth_multiplier
+    # with value of 0.5
     def testBuildEndPointsWithDepthMultiplierLessThanOne(self):
         batch_size = 5
         height, width = 224, 224
@@ -402,10 +400,9 @@ class MobilenetV1Test(tf.test.TestCase):
             new_depth = end_points_with_multiplier[key].get_shape().as_list()[3]
             self.assertEqual(0.5 * original_depth, new_depth)
 
-        # 12th test
-        # test function parameter ---- depth_multipiler
-        # with value of 2.0
-
+    # 12th test
+    # test function parameter ---- depth_multipiler
+    # with value of 2.0
     def testBuildEndPointsWithDepthMultiplierGreaterThanOne(self):
         batch_size = 5
         height, width = 224, 224
