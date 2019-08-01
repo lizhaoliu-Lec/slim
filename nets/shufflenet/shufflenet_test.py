@@ -19,6 +19,7 @@ from __future__ import print_function
 
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
+import numpy as np
 
 from nets.shufflenet import shufflenet
 from nets.shufflenet.shufflenet_utils import group_conv2d
@@ -337,15 +338,14 @@ class ShuffleNetV1Test(tf.test.TestCase):
             'Stage_2/Unit_2': 704658, 'Stage_2/Unit_3': 864738,
         }
 
-        for end_point in endpoints_num_params:
+        for scope, end_point in enumerate(endpoints_num_params):
             with slim.arg_scope([slim.conv2d, slim.separable_conv2d, group_conv2d],
-                                normalizer_fn=slim.batch_norm) as sc:
-                shufflenet.shufflenet_base(inputs, final_endpoint=end_point)
+                                normalizer_fn=slim.batch_norm):
+                shufflenet.shufflenet_base(inputs, final_endpoint=end_point, scope=str(scope))
                 total_params, _ = slim.model_analyzer.analyze_vars(
-                    slim.get_model_variables())
+                    slim.get_model_variables(scope=str(scope)))
 
                 self.assertAlmostEqual(endpoints_num_params[end_point], total_params)
-                del sc
 
     def testBuildEndPointsWithDepthMultiplierLessThanOne(self):
         batch_size = 5
@@ -356,6 +356,80 @@ class ShuffleNetV1Test(tf.test.TestCase):
         _, end_points = shufflenet.shufflenet_v1(inputs, num_classes)
 
         endpoint_keys = [key for key in end_points.keys() if key.startswith('Stage')]
+
+        _, end_points_with_multiplier = shufflenet.shufflenet_v1(
+            inputs, num_classes, scope='depth_multiplied_net',
+            depth_multiplier=0.5)
+
+        for key in endpoint_keys:
+            original_depth = end_points[key].get_shape().as_list()[3]
+            new_depth = end_points_with_multiplier[key].get_shape().as_list()[3]
+            self.assertEqual(0.5 * original_depth, new_depth)
+
+    def testBuildEndPointsWithDepthMultiplierGreaterThanOne(self):
+        batch_size = 5
+        height, width = 224, 224
+        num_classes = 1000
+
+        inputs = tf.random_uniform((batch_size, height, width, 3))
+        _, end_points = shufflenet.shufflenet_v1(inputs, num_classes)
+
+        endpoint_keys = [key for key in end_points.keys()
+                         if key.startswith('Stage')]
+
+        _, end_points_with_multiplier = shufflenet.shufflenet_v1(
+            inputs, num_classes, scope='depth_multiplied_net',
+            depth_multiplier=2.0)
+
+        for key in endpoint_keys:
+            original_depth = end_points[key].get_shape().as_list()[3]
+            new_depth = end_points_with_multiplier[key].get_shape().as_list()[3]
+            self.assertEqual(2.0 * original_depth, new_depth)
+
+    def testRaiseValueErrorWithInvalidDepthMultiplier(self):
+        batch_size = 5
+        height, width = 224, 224
+        num_classes = 1000
+
+        inputs = tf.random_uniform((batch_size, height, width, 3))
+        with self.assertRaises(ValueError):
+            _ = shufflenet.shufflenet_v1(
+                inputs, num_classes, depth_multiplier=-0.1)
+        with self.assertRaises(ValueError):
+            _ = shufflenet.shufflenet_v1(
+                inputs, num_classes, depth_multiplier=0.0)
+
+    def testHalfSizeImages(self):
+        batch_size = 5
+        height, width = 112, 112
+        num_classes = 1000
+
+        inputs = tf.random_uniform((batch_size, height, width, 3))
+        logits, end_points = shufflenet.shufflenet_v1(inputs, num_classes)
+        self.assertTrue(logits.op.name.startswith('ShufflenetV1/Logits'))
+        self.assertListEqual(logits.get_shape().as_list(),
+                             [batch_size, num_classes])
+        pre_pool = end_points['Stage_2/Unit_3']
+        self.assertListEqual(pre_pool.get_shape().as_list(),
+                             [batch_size, 4, 4, 960])
+
+    def testUnknownImageShape(self):
+        tf.reset_default_graph()
+        batch_size = 2
+        height, width = 224, 224
+        num_classes = 1000
+        input_np = np.random.uniform(0, 1, (batch_size, height, width, 3))
+        with self.test_session() as sess:
+            inputs = tf.placeholder(tf.float32, shape=(batch_size, None, None, 3))
+            logits, end_points = shufflenet.shufflenet_v1(inputs, num_classes)
+            self.assertTrue(logits.op.name.startswith('ShufflenetV1/Logits'))
+            self.assertListEqual(logits.get_shape().as_list(),
+                                 [batch_size, num_classes])
+            pre_pool = end_points['Stage_2/Unit_3']
+            feed_dict = {inputs: input_np}
+            tf.global_variables_initializer().run()
+            pre_pool_out = sess.run(pre_pool, feed_dict=feed_dict)
+            self.assertListEqual(list(pre_pool_out.shape), [batch_size, 7, 7, 960])
 
 
 if __name__ == '__main__':
