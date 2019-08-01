@@ -499,7 +499,10 @@ class MobilenetV1Test(tf.test.TestCase):
             pre_pool_out = sess.run(pre_pool, feed_dict=feed_dict)
             self.assertListEqual(list(pre_pool_out.shape), [batch_size, 8, 10, 1024])
 
-    def testUnknowBatchSize(self):
+    # 17th test
+    # test function parameter ---- batch_size
+    # with value of None
+    def testUnknownBatchSize(self):
         batch_size = 1
         height, width = 224, 224
         num_classes = 1000
@@ -516,10 +519,9 @@ class MobilenetV1Test(tf.test.TestCase):
             output = sess.run(logits, {inputs: images.eval()})
             self.assertEquals(output.shape, (batch_size, num_classes))
 
-        # 18th test
-        # test function parameter ---- is_training
-        # with value of False
-
+    # 18th test
+    # test function parameter ---- is_training
+    # with value of False
     def testEvaluation(self):
         batch_size = 2
         height, width = 224, 224
@@ -535,10 +537,9 @@ class MobilenetV1Test(tf.test.TestCase):
             output = sess.run(predictions)
             self.assertEquals(output.shape, (batch_size,))
 
-        # 19th test
-        # test function parameter ---- reuse
-        # with value of True
-
+    # 19th test
+    # test function parameter ---- reuse
+    # with value of True
     def testTrainEvalWithReuse(self):
         train_batch_size = 5
         eval_batch_size = 2
@@ -557,10 +558,9 @@ class MobilenetV1Test(tf.test.TestCase):
             output = sess.run(predictions)
             self.assertEquals(output.shape, (eval_batch_size,))
 
-        # 20th test
-        # test function parmeter ---- spatial_squeeze
-        # with value of False
-
+    # 20th test
+    # test function parmeter ---- spatial_squeeze
+    # with value of False
     def testLogitsNotSqueezed(self):
         num_classes = 25
         images = tf.random_uniform([1, 224, 224, 3])
@@ -573,19 +573,17 @@ class MobilenetV1Test(tf.test.TestCase):
             logits_out = sess.run(logits)
             self.assertListEqual(list(logits_out.shape), [1, 1, 1, num_classes])
 
-        # 21th test
-        # test function parameter ---- is_training
-        # with value of None
-
+    # 21th test
+    # test function parameter ---- is_training
+    # with value of None
     def testBatchNormScopeDoesNotHaveIsTrainingWhenItsSetToNone(self):
         sc = mobilenet_v1.mobilenet_v1_arg_scope(is_training=None)
         self.assertNotIn('is_training', sc[slim.arg_scope_func_key(
             slim.batch_norm)])
 
-        # 22th test
-        # test function parameter ---- is_training
-        # with value of True and False
-
+    # 22th test
+    # test function parameter ---- is_training
+    # with value of True and False
     def testBatchNormScopeDoesHasIsTrainingWhenItsNotNone(self):
         sc = mobilenet_v1.mobilenet_v1_arg_scope(is_training=True)
         self.assertIn('is_training', sc[slim.arg_scope_func_key(slim.batch_norm)])
