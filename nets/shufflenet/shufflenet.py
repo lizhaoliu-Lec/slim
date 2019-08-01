@@ -1,4 +1,4 @@
-# Tensorflow mandates these.
+# TensorFlow mandates these.
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -28,16 +28,16 @@ def unit_fn(inputs,
             reached_output_stride=False):
     depth_in = slim.utils.last_dimension(inputs.get_shape(), min_rank=4)
     if stride == 2 or reached_output_stride:
-        ratio = depth // depth_bottleneck
+        # ratio = depth // depth_bottleneck
         depth -= depth_in
-        depth_bottleneck = depth // ratio
-        depth = depth_bottleneck * ratio
+        # depth_bottleneck = depth // ratio
+        # depth = depth_bottleneck * ratio
 
     residual = group_conv2d(inputs, depth_bottleneck, [1, 1], stride=1,
                             num_groups=num_groups)
-    print(num_groups, '*** num groups ***')
-    print(residual.get_shape().as_list(), '*** after group conv1 ***')
-    print(residual.graph.get_collection('trainable_variables'), '*** after group conv1 graph ***')
+    # print(num_groups, '*** num groups ***')
+    # print(residual.get_shape().as_list(), '*** after group conv1 ***')
+    # print(residual.graph.get_collection('trainable_variables'), '*** after group conv1 graph ***')
     # channel shuffle
     residual = _channel_shuffle(residual, num_groups)
 
@@ -51,12 +51,12 @@ def unit_fn(inputs,
                                      padding='SAME',
                                      rate=rate,
                                      activation_fn=None)
-    print(residual.get_shape().as_list(), '*** after separable_conv2d ***')
-    print(residual.graph.get_collection('trainable_variables'), '*** after separable_conv2d graph ***')
+    # print(residual.get_shape().as_list(), '*** after separable_conv2d ***')
+    # print(residual.graph.get_collection('trainable_variables'), '*** after separable_conv2d graph ***')
     residual = group_conv2d(residual, depth, [1, 1], stride=1,
                             num_groups=num_groups, activation_fn=None)
-    print(residual.get_shape().as_list(), '*** after group conv2 ***')
-    print(residual.graph.get_collection('trainable_variables'), '*** after group conv2 graph ***')
+    # print(residual.get_shape().as_list(), '*** after group conv2 ***')
+    # print(residual.graph.get_collection('trainable_variables'), '*** after group conv2 graph ***')
 
     if stride == 2 or reached_output_stride:
         if reached_output_stride:
@@ -393,7 +393,7 @@ def shufflenet_v1_arg_scope(
 
     with slim.arg_scope([slim.conv2d, slim.separable_conv2d, group_conv2d],
                         weights_initializer=weights_init,
-                        activation_fn=tf.nn.relu6, normalizer_fn=slim.batch_norm):
+                        activation_fn=tf.nn.relu6, normalizer_fn=normalizer_fn):
         with slim.arg_scope([slim.batch_norm], **batch_norm_params):
             with slim.arg_scope([slim.conv2d], weights_regularizer=regularizer):
                 with slim.arg_scope([slim.separable_conv2d],
