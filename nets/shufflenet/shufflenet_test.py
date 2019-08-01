@@ -126,7 +126,7 @@ class ShuffleNetV1Test(tf.test.TestCase):
         depth_channels_defs = {
             '1': [144, 288, 576],
             '2': [200, 400, 800],
-            '3': [240, 960, 1024],
+            '3': [480, 960, 1024],
             '4': [272, 544, 1088],
             '8': [384, 768, 1536],
         }
@@ -321,31 +321,76 @@ class ShuffleNetV1Test(tf.test.TestCase):
         batch_size = 5
         height, width = 224, 224
         inputs = tf.random_uniform((batch_size, height, width, 3))
-
-        endpoints_num_params = {
-            # regular conv and pool
-            'Conv2d_0': 720, 'MaxPool2d_0': 720,
-            # Stage 1 with 4 units
-            'Stage_0/Unit_0': 6498, 'Stage_0/Unit_1': 17718,
-            'Stage_0/Unit_2': 28938, 'Stage_0/Unit_3': 40158,
-            # Stage 2 with 8 units
-            'Stage_1/Unit_0': 51378, 'Stage_1/Unit_1': 93018,
-            'Stage_1/Unit_2': 134658, 'Stage_1/Unit_3': 176298,
-            'Stage_1/Unit_4': 217938, 'Stage_1/Unit_5': 259578,
-            'Stage_1/Unit_6': 301218, 'Stage_1/Unit_7': 342858,
-            # Stage 3 with 4 units
-            'Stage_2/Unit_0': 384498, 'Stage_2/Unit_1': 544578,
-            'Stage_2/Unit_2': 704658, 'Stage_2/Unit_3': 864738,
+        endpoints_groups = {
+            '1': {
+                'Conv2d_0': 720, 'MaxPool2d_0': 720,
+                'Stage_0/Unit_0': 6804, 'Stage_0/Unit_1': 18144,
+                'Stage_0/Unit_2': 29484, 'Stage_0/Unit_3': 40824,
+                'Stage_1/Unit_0': 63072, 'Stage_1/Unit_1': 106488,
+                'Stage_1/Unit_2': 149904, 'Stage_1/Unit_3': 193320,
+                'Stage_1/Unit_4': 236736, 'Stage_1/Unit_5': 280152,
+                'Stage_1/Unit_6': 323568, 'Stage_1/Unit_7': 366984,
+                'Stage_2/Unit_0': 452952, 'Stage_2/Unit_1': 622728,
+                'Stage_2/Unit_2': 792504, 'Stage_2/Unit_3': 962280
+            },
+            '2': {
+                'Conv2d_0': 720, 'MaxPool2d_0': 720,
+                'Stage_0/Unit_0': 6998, 'Stage_0/Unit_1': 18348,
+                'Stage_0/Unit_2': 29698, 'Stage_0/Unit_3': 41048,
+                'Stage_1/Unit_0': 63148, 'Stage_1/Unit_1': 105848,
+                'Stage_1/Unit_2': 148548, 'Stage_1/Unit_3': 191248,
+                'Stage_1/Unit_4': 233948, 'Stage_1/Unit_5': 276648,
+                'Stage_1/Unit_6': 319348, 'Stage_1/Unit_7': 362048,
+                'Stage_2/Unit_0': 446248, 'Stage_2/Unit_1': 611648,
+                'Stage_2/Unit_2': 777048, 'Stage_2/Unit_3': 942448
+            },
+            '3': {
+                'Conv2d_0': 720, 'MaxPool2d_0': 720,
+                'Stage_0/Unit_0': 7068, 'Stage_0/Unit_1': 18288,
+                'Stage_0/Unit_2': 29508, 'Stage_0/Unit_3': 40728,
+                'Stage_1/Unit_0': 62448, 'Stage_1/Unit_1': 104088,
+                'Stage_1/Unit_2': 145728, 'Stage_1/Unit_3': 187368,
+                'Stage_1/Unit_4': 229008, 'Stage_1/Unit_5': 270648,
+                'Stage_1/Unit_6': 312288, 'Stage_1/Unit_7': 353928,
+                'Stage_2/Unit_0': 435768, 'Stage_2/Unit_1': 595848,
+                'Stage_2/Unit_2': 755928, 'Stage_2/Unit_3': 916008
+            },
+            '4': {
+                'Conv2d_0': 720, 'MaxPool2d_0': 720,
+                'Stage_0/Unit_0': 7108, 'Stage_0/Unit_1': 18192,
+                'Stage_0/Unit_2': 29276, 'Stage_0/Unit_3': 40360,
+                'Stage_1/Unit_0': 61712, 'Stage_1/Unit_1': 102376,
+                'Stage_1/Unit_2': 143040, 'Stage_1/Unit_3': 183704,
+                'Stage_1/Unit_4': 224368, 'Stage_1/Unit_5': 265032,
+                'Stage_1/Unit_6': 305696, 'Stage_1/Unit_7': 346360,
+                'Stage_2/Unit_0': 426056, 'Stage_2/Unit_1': 581368,
+                'Stage_2/Unit_2': 736680, 'Stage_2/Unit_3': 891992
+            },
+            '8': {
+                'Conv2d_0': 720, 'MaxPool2d_0': 720,
+                'Stage_0/Unit_0': 7848, 'Stage_0/Unit_1': 19656,
+                'Stage_0/Unit_2': 31464, 'Stage_0/Unit_3': 43272,
+                'Stage_1/Unit_0': 65736, 'Stage_1/Unit_1': 107784,
+                'Stage_1/Unit_2': 149832, 'Stage_1/Unit_3': 191880,
+                'Stage_1/Unit_4': 233928, 'Stage_1/Unit_5': 275976,
+                'Stage_1/Unit_6': 318024, 'Stage_1/Unit_7': 360072,
+                'Stage_2/Unit_0': 441864, 'Stage_2/Unit_1': 599688,
+                'Stage_2/Unit_2': 757512, 'Stage_2/Unit_3': 915336
+            },
         }
 
-        for scope, end_point in enumerate(endpoints_num_params):
-            with slim.arg_scope([slim.conv2d, slim.separable_conv2d, group_conv2d],
-                                normalizer_fn=slim.batch_norm):
-                shufflenet.shufflenet_base(inputs, final_endpoint=end_point, scope=str(scope))
-                total_params, _ = slim.model_analyzer.analyze_vars(
-                    slim.get_model_variables(scope=str(scope)))
+        for num_groups in endpoints_groups:
+            for scope, end_point in enumerate(endpoints_groups[num_groups]):
+                print(num_groups, end_point)
+                with slim.arg_scope([slim.conv2d, slim.separable_conv2d, group_conv2d],
+                                    normalizer_fn=slim.batch_norm):
+                    shufflenet.shufflenet_base(inputs, final_endpoint=end_point,
+                                               num_groups=int(num_groups),
+                                               scope=num_groups + '/' + str(scope))
+                    total_params, _ = slim.model_analyzer.analyze_vars(
+                        slim.get_model_variables(scope=num_groups + '/' + str(scope)))
 
-                self.assertAlmostEqual(endpoints_num_params[end_point], total_params)
+                    self.assertAlmostEqual(endpoints_groups[num_groups][end_point], total_params)
 
     def testBuildEndPointsWithDepthMultiplierLessThanOne(self):
         batch_size = 5
@@ -430,6 +475,81 @@ class ShuffleNetV1Test(tf.test.TestCase):
             tf.global_variables_initializer().run()
             pre_pool_out = sess.run(pre_pool, feed_dict=feed_dict)
             self.assertListEqual(list(pre_pool_out.shape), [batch_size, 7, 7, 960])
+
+    def testUnknownBatchSize(self):
+        batch_size = 1
+        height, width = 224, 224
+        num_classes = 1000
+
+        inputs = tf.placeholder(tf.float32, (None, height, width, 3))
+        logits, _ = shufflenet.shufflenet_v1(inputs, num_classes)
+        self.assertTrue(logits.op.name.startswith('ShufflenetV1/Logits'))
+        self.assertListEqual(logits.get_shape().as_list(),
+                             [None, num_classes])
+        images = tf.random_uniform((batch_size, height, width, 3))
+
+        with self.test_session() as sess:
+            sess.run(tf.global_variables_initializer())
+            output = sess.run(logits, {inputs: images.eval()})
+            self.assertEquals(output.shape, (batch_size, num_classes))
+
+    def testEvaluation(self):
+        batch_size = 2
+        height, width = 224, 224
+        num_classes = 1000
+
+        eval_inputs = tf.random_uniform((batch_size, height, width, 3))
+        logits, _ = shufflenet.shufflenet_v1(eval_inputs, num_classes,
+                                             is_training=False)
+        predictions = tf.argmax(logits, 1)
+
+        with self.test_session() as sess:
+            sess.run(tf.global_variables_initializer())
+            output = sess.run(predictions)
+            self.assertEquals(output.shape, (batch_size,))
+
+    def testTrainEvalWithReuse(self):
+        train_batch_size = 5
+        eval_batch_size = 2
+        height, width = 150, 150
+        num_classes = 1000
+
+        train_inputs = tf.random_uniform((train_batch_size, height, width, 3))
+        shufflenet.shufflenet_v1(train_inputs, num_classes)
+        eval_inputs = tf.random_uniform((eval_batch_size, height, width, 3))
+        logits, _ = shufflenet.shufflenet_v1(eval_inputs, num_classes,
+                                             reuse=True)
+        predictions = tf.argmax(logits, 1)
+
+        with self.test_session() as sess:
+            sess.run(tf.global_variables_initializer())
+            output = sess.run(predictions)
+            self.assertEquals(output.shape, (eval_batch_size,))
+
+    def testLogitsNotSqueezed(self):
+        num_classes = 25
+        images = tf.random_uniform([1, 224, 224, 3])
+        logits, _ = shufflenet.shufflenet_v1(images,
+                                             num_classes=num_classes,
+                                             spatial_squeeze=False)
+
+        with self.test_session() as sess:
+            tf.global_variables_initializer().run()
+            logits_out = sess.run(logits)
+            self.assertListEqual(list(logits_out.shape), [1, 1, 1, num_classes])
+
+    def testBatchNormScopeDoesNotHaveIsTrainingWhenItsSetToNone(self):
+        sc = shufflenet.shufflenet_v1_arg_scope(is_training=None)
+        self.assertNotIn('is_training', sc[slim.arg_scope_func_key(
+            slim.batch_norm)])
+
+    def testBatchNormScopeDoesHasIsTrainingWhenItsNotNone(self):
+        sc = shufflenet.shufflenet_v1_arg_scope(is_training=True)
+        self.assertIn('is_training', sc[slim.arg_scope_func_key(slim.batch_norm)])
+        sc = shufflenet.shufflenet_v1_arg_scope(is_training=False)
+        self.assertIn('is_training', sc[slim.arg_scope_func_key(slim.batch_norm)])
+        sc = shufflenet.shufflenet_v1_arg_scope()
+        self.assertIn('is_training', sc[slim.arg_scope_func_key(slim.batch_norm)])
 
 
 if __name__ == '__main__':
