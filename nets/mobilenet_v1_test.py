@@ -423,10 +423,9 @@ class MobilenetV1Test(tf.test.TestCase):
             new_depth = end_points_with_multiplier[key].get_shape().as_list()[3]
             self.assertEqual(2.0 * original_depth, new_depth)
 
-        # 13th test
-        # test function parameter ---- depth_multiplier
-        # with error value
-
+    # 13th test
+    # test function parameter ---- depth_multiplier
+    # with error value
     def testRaiseValueErrorWithInvalidDepthMultiplier(self):
         batch_size = 5
         height, width = 224, 224
@@ -440,10 +439,9 @@ class MobilenetV1Test(tf.test.TestCase):
             _ = mobilenet_v1.mobilenet_v1(
                 inputs, num_classes, depth_multiplier=0.0)
 
-        # 14th test
-        # test function parameter ---- (height, width)
-        # with value of (112, 112)
-
+    # 14th test
+    # test function parameter ---- (height, width)
+    # with value of (112, 112)
     def testHalfSizeImages(self):
         batch_size = 5
         height, width = 112, 112
@@ -458,10 +456,9 @@ class MobilenetV1Test(tf.test.TestCase):
         self.assertListEqual(pre_pool.get_shape().as_list(),
                              [batch_size, 4, 4, 1024])
 
-        # 15th test
-        # test function parameter ---- (height, width)
-        # with value of (None, None)
-
+    # 15th test
+    # test function parameter ---- (height, width)
+    # with value of (None, None)
     def testUnknownImageShape(self):
         tf.reset_default_graph()
         batch_size = 2
@@ -480,10 +477,9 @@ class MobilenetV1Test(tf.test.TestCase):
             pre_pool_out = sess.run(pre_pool, feed_dict=feed_dict)
             self.assertListEqual(list(pre_pool_out.shape), [batch_size, 7, 7, 1024])
 
-        # 16th test
-        # test function parameter ---- (height, width)
-        # with value of (250, 300)
-
+    # 16th test
+    # test function parameter ---- (height, width)
+    # with value of (250, 300)
     def testGlobalPoolUnknownImageShape(self):
         tf.reset_default_graph()
         batch_size = 1
