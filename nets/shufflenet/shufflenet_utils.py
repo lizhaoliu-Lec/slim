@@ -37,10 +37,10 @@ def group_conv2d(inputs,
                 inputs.get_shape(), min_rank=4)
 
             assert num_outputs % num_groups == 0, (
-                    "num_outputs=%d is not divisible by num_groups=%d" %
+                    "num_outputs `%d` is not divisible by num_groups `%d`" %
                     (num_outputs, num_groups))
             assert depth_in % num_groups == 0, (
-                    "depth_in=%d is not divisible by num_groups=%d" %
+                    "depth_in `%d` is not divisible by num_groups `%d`" %
                     (depth_in, num_groups))
 
             group_size_out = num_outputs // num_groups
@@ -80,8 +80,8 @@ def _channel_shuffle(inputs,
         group_size = depth_in // num_groups
         net = inputs
         net_shape = get_shape_list(net)
-        print(get_shape_list(net), '*** get shape list ***')
-        print(net_shape, '*** shape ***')
+        # print(get_shape_list(net), '*** get shape list ***')
+        # print(net_shape, '*** shape ***')
         # reshape to (b, h, w, g, n)
         net = tf.reshape(net, net_shape[:3] + [num_groups, group_size])
         # transpose to (b, h, w, n, g)
