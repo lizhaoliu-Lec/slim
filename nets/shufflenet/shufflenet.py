@@ -3,6 +3,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import functools
 from collections import namedtuple
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
@@ -25,7 +26,8 @@ def unit_fn(inputs,
             stride,
             num_groups,
             rate=1,
-            reached_output_stride=False):
+            reached_output_stride=False,
+            first_stage_first_unit=False):
     depth_in = slim.utils.last_dimension(inputs.get_shape(), min_rank=4)
     if stride == 2 or reached_output_stride:
         # ratio = depth // depth_bottleneck
@@ -34,7 +36,7 @@ def unit_fn(inputs,
         # depth = depth_bottleneck * ratio
 
     residual = group_conv2d(inputs, depth_bottleneck, [1, 1], stride=1,
-                            num_groups=num_groups)
+                            num_groups=num_groups if not first_stage_first_unit else 1)
     # print(num_groups, '*** num groups ***')
     # print(residual.get_shape().as_list(), '*** after group conv1 ***')
     # print(residual.graph.get_collection('trainable_variables'), '*** after group conv1 graph ***')
@@ -170,6 +172,9 @@ def stack_stages(inputs,
                         unit_stride = unit_args['stride']
                         unit_rate = 1
                         current_stride *= unit_stride
+
+                    if not stage_idx and not unit_idx:
+                        unit_args['first_stage_first_unit'] = True
 
                     unit_args['stride'] = unit_stride
                     net = stage.unit_fn(net, rate=unit_rate, **unit_args)
@@ -321,6 +326,12 @@ def shufflenet_v1(inputs,
 
 
 shufflenet_v1.default_image_size = 224
+
+
+def wrapped_partial(func, *args, **kwargs):
+    partial_func = functools.partial(func, *args, **kwargs)
+    functools.update_wrapper(partial_func, func)
+    return partial_func
 
 
 def _reduced_kernel_size_for_small_input(input_tensor, kernel_size):
