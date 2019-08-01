@@ -126,7 +126,7 @@ class ShuffleNetV1Test(tf.test.TestCase):
         depth_channels_defs = {
             '1': [144, 288, 576],
             '2': [200, 400, 800],
-            '3': [480, 960, 1024],
+            '3': [480, 960, 1440],
             '4': [272, 544, 1088],
             '8': [384, 768, 1536],
         }
@@ -392,6 +392,310 @@ class ShuffleNetV1Test(tf.test.TestCase):
 
                     self.assertAlmostEqual(endpoints_groups[num_groups][end_point], total_params)
 
+    def testModelHasExpectedNumberOfParametersWithRate0_25(self):
+        batch_size = 5
+        height, width = 224, 224
+        inputs = tf.random_uniform((batch_size, height, width, 3))
+        endpoints_groups_0_25 = {
+            '1': {
+                'Conv2d_0': 720, 'MaxPool2d_0': 720,
+                'Stage_0/Unit_0': 1215, 'Stage_0/Unit_1': 2106,
+                'Stage_0/Unit_2': 2997, 'Stage_0/Unit_3': 3888,
+                'Stage_1/Unit_0': 5562, 'Stage_1/Unit_1': 8640,
+                'Stage_1/Unit_2': 11718, 'Stage_1/Unit_3': 14796,
+                'Stage_1/Unit_4': 17874, 'Stage_1/Unit_5': 20952,
+                'Stage_1/Unit_6': 24030, 'Stage_1/Unit_7': 27108,
+                'Stage_2/Unit_0': 33048, 'Stage_2/Unit_1': 44388,
+                'Stage_2/Unit_2': 55728, 'Stage_2/Unit_3': 67068
+            },
+            '2': {
+                'Conv2d_0': 720, 'MaxPool2d_0': 720,
+                'Stage_0/Unit_0': 1422, 'Stage_0/Unit_1': 2352,
+                'Stage_0/Unit_2': 3282, 'Stage_0/Unit_3': 4212,
+                'Stage_1/Unit_0': 5922, 'Stage_1/Unit_1': 8982,
+                'Stage_1/Unit_2': 12042, 'Stage_1/Unit_3': 15102,
+                'Stage_1/Unit_4': 18162, 'Stage_1/Unit_5': 21222,
+                'Stage_1/Unit_6': 24282, 'Stage_1/Unit_7': 27342,
+                'Stage_2/Unit_0': 33392, 'Stage_2/Unit_1': 44742,
+                'Stage_2/Unit_2': 56092, 'Stage_2/Unit_3': 67442
+            },
+            '3': {
+                'Conv2d_0': 720, 'MaxPool2d_0': 720,
+                'Stage_0/Unit_0': 1593, 'Stage_0/Unit_1': 2598,
+                'Stage_0/Unit_2': 3603, 'Stage_0/Unit_3': 4608,
+                'Stage_1/Unit_0': 6438, 'Stage_1/Unit_1': 9648,
+                'Stage_1/Unit_2': 12858, 'Stage_1/Unit_3': 16068,
+                'Stage_1/Unit_4': 19278, 'Stage_1/Unit_5': 22488,
+                'Stage_1/Unit_6': 25698, 'Stage_1/Unit_7': 28908,
+                'Stage_2/Unit_0': 34968, 'Stage_2/Unit_1': 46188,
+                'Stage_2/Unit_2': 57408, 'Stage_2/Unit_3': 68628
+            },
+            '4': {
+                'Conv2d_0': 720, 'MaxPool2d_0': 720,
+                'Stage_0/Unit_0': 1652, 'Stage_0/Unit_1': 2640,
+                'Stage_0/Unit_2': 3628, 'Stage_0/Unit_3': 4616,
+                'Stage_1/Unit_0': 6388, 'Stage_1/Unit_1': 9452,
+                'Stage_1/Unit_2': 12516, 'Stage_1/Unit_3': 15580,
+                'Stage_1/Unit_4': 18644, 'Stage_1/Unit_5': 21708,
+                'Stage_1/Unit_6': 24772, 'Stage_1/Unit_7': 27836,
+                'Stage_2/Unit_0': 33888, 'Stage_2/Unit_1': 44972,
+                'Stage_2/Unit_2': 56056, 'Stage_2/Unit_3': 67140
+            },
+            '8': {
+                'Conv2d_0': 720, 'MaxPool2d_0': 720,
+                'Stage_0/Unit_0': 2088, 'Stage_0/Unit_1': 3312,
+                'Stage_0/Unit_2': 4536, 'Stage_0/Unit_3': 5760,
+                'Stage_1/Unit_0': 7920, 'Stage_1/Unit_1': 11520,
+                'Stage_1/Unit_2': 15120, 'Stage_1/Unit_3': 18720,
+                'Stage_1/Unit_4': 22320, 'Stage_1/Unit_5': 25920,
+                'Stage_1/Unit_6': 29520, 'Stage_1/Unit_7': 33120,
+                'Stage_2/Unit_0': 39744, 'Stage_2/Unit_1': 51552,
+                'Stage_2/Unit_2': 63360, 'Stage_2/Unit_3': 75168
+            },
+        }
+
+        for num_groups in endpoints_groups_0_25:
+            for scope, end_point in enumerate(endpoints_groups_0_25[num_groups]):
+                print(num_groups, end_point)
+                with slim.arg_scope([slim.conv2d, slim.separable_conv2d, group_conv2d],
+                                    normalizer_fn=slim.batch_norm):
+                    shufflenet.shufflenet_base(inputs, final_endpoint=end_point,
+                                               depth_multiplier=0.25,
+                                               num_groups=int(num_groups),
+                                               scope=num_groups + '/' + str(scope))
+                    total_params, _ = slim.model_analyzer.analyze_vars(
+                        slim.get_model_variables(scope=num_groups + '/' + str(scope)))
+
+                    self.assertAlmostEqual(endpoints_groups_0_25[num_groups][end_point], total_params)
+
+    def testModelHasExpectedNumberOfParametersWithRate0_5(self):
+        batch_size = 5
+        height, width = 224, 224
+        inputs = tf.random_uniform((batch_size, height, width, 3))
+        endpoints_groups_0_5 = {
+            '1': {
+                'Conv2d_0': 720, 'MaxPool2d_0': 720,
+                'Stage_0/Unit_0': 2430, 'Stage_0/Unit_1': 5508,
+                'Stage_0/Unit_2': 8586, 'Stage_0/Unit_3': 11664,
+                'Stage_1/Unit_0': 17604, 'Stage_1/Unit_1': 28944,
+                'Stage_1/Unit_2': 40284, 'Stage_1/Unit_3': 51624,
+                'Stage_1/Unit_4': 62964, 'Stage_1/Unit_5': 74304,
+                'Stage_1/Unit_6': 85644, 'Stage_1/Unit_7': 96984,
+                'Stage_2/Unit_0': 119232, 'Stage_2/Unit_1': 162648,
+                'Stage_2/Unit_2': 206064, 'Stage_2/Unit_3': 249480
+            },
+            '2': {
+                'Conv2d_0': 720, 'MaxPool2d_0': 720,
+                'Stage_0/Unit_0': 2796, 'Stage_0/Unit_1': 5856,
+                'Stage_0/Unit_2': 8916, 'Stage_0/Unit_3': 11976,
+                'Stage_1/Unit_0': 18026, 'Stage_1/Unit_1': 29376,
+                'Stage_1/Unit_2': 40726, 'Stage_1/Unit_3': 52076,
+                'Stage_1/Unit_4': 63426, 'Stage_1/Unit_5': 74776,
+                'Stage_1/Unit_6': 86126, 'Stage_1/Unit_7': 97476,
+                'Stage_2/Unit_0': 119576, 'Stage_2/Unit_1': 162276,
+                'Stage_2/Unit_2': 204976, 'Stage_2/Unit_3': 247676
+            },
+            '3': {
+                'Conv2d_0': 720, 'MaxPool2d_0': 720,
+                'Stage_0/Unit_0': 3138, 'Stage_0/Unit_1': 6348,
+                'Stage_0/Unit_2': 9558, 'Stage_0/Unit_3': 12768,
+                'Stage_1/Unit_0': 18828, 'Stage_1/Unit_1': 30048,
+                'Stage_1/Unit_2': 41268, 'Stage_1/Unit_3': 52488,
+                'Stage_1/Unit_4': 63708, 'Stage_1/Unit_5': 74928,
+                'Stage_1/Unit_6': 86148, 'Stage_1/Unit_7': 97368,
+                'Stage_2/Unit_0': 119088, 'Stage_2/Unit_1': 160728,
+                'Stage_2/Unit_2': 202368, 'Stage_2/Unit_3': 244008
+            },
+            '4': {
+                'Conv2d_0': 720, 'MaxPool2d_0': 720,
+                'Stage_0/Unit_0': 3200, 'Stage_0/Unit_1': 6264,
+                'Stage_0/Unit_2': 9328, 'Stage_0/Unit_3': 12392,
+                'Stage_1/Unit_0': 18444, 'Stage_1/Unit_1': 29528,
+                'Stage_1/Unit_2': 40612, 'Stage_1/Unit_3': 51696,
+                'Stage_1/Unit_4': 62780, 'Stage_1/Unit_5': 73864,
+                'Stage_1/Unit_6': 84948, 'Stage_1/Unit_7': 96032,
+                'Stage_2/Unit_0': 117384, 'Stage_2/Unit_1': 158048,
+                'Stage_2/Unit_2': 198712, 'Stage_2/Unit_3': 239376
+            },
+            '8': {
+                'Conv2d_0': 720, 'MaxPool2d_0': 720,
+                'Stage_0/Unit_0': 4104, 'Stage_0/Unit_1': 7704,
+                'Stage_0/Unit_2': 11304, 'Stage_0/Unit_3': 14904,
+                'Stage_1/Unit_0': 21528, 'Stage_1/Unit_1': 33336,
+                'Stage_1/Unit_2': 45144, 'Stage_1/Unit_3': 56952,
+                'Stage_1/Unit_4': 68760, 'Stage_1/Unit_5': 80568,
+                'Stage_1/Unit_6': 92376, 'Stage_1/Unit_7': 104184,
+                'Stage_2/Unit_0': 126648, 'Stage_2/Unit_1': 168696,
+                'Stage_2/Unit_2': 210744, 'Stage_2/Unit_3': 252792
+            },
+        }
+
+        for num_groups in endpoints_groups_0_5:
+            for scope, end_point in enumerate(endpoints_groups_0_5[num_groups]):
+                print(num_groups, end_point)
+                with slim.arg_scope([slim.conv2d, slim.separable_conv2d, group_conv2d],
+                                    normalizer_fn=slim.batch_norm):
+                    shufflenet.shufflenet_base(inputs, final_endpoint=end_point,
+                                               depth_multiplier=0.5,
+                                               num_groups=int(num_groups),
+                                               scope=num_groups + '/' + str(scope))
+                    total_params, _ = slim.model_analyzer.analyze_vars(
+                        slim.get_model_variables(scope=num_groups + '/' + str(scope)))
+
+                    self.assertAlmostEqual(endpoints_groups_0_5[num_groups][end_point], total_params)
+
+    def testModelHasExpectedNumberOfParametersWithRate1_5(self):
+        batch_size = 5
+        height, width = 224, 224
+        inputs = tf.random_uniform((batch_size, height, width, 3))
+        endpoints_groups_1_5 = {
+            '1': {
+                'Conv2d_0': 720, 'MaxPool2d_0': 720,
+                'Stage_0/Unit_0': 13770, 'Stage_0/Unit_1': 38556,
+                'Stage_0/Unit_2': 63342, 'Stage_0/Unit_3': 88128,
+                'Stage_1/Unit_0': 137052, 'Stage_1/Unit_1': 233280,
+                'Stage_1/Unit_2': 329508, 'Stage_1/Unit_3': 425736,
+                'Stage_1/Unit_4': 521964, 'Stage_1/Unit_5': 618192,
+                'Stage_1/Unit_6': 714420, 'Stage_1/Unit_7': 810648,
+                'Stage_2/Unit_0': 1001808, 'Stage_2/Unit_1': 1380888,
+                'Stage_2/Unit_2': 1759968, 'Stage_2/Unit_3': 2139048
+            },
+            '2': {
+                'Conv2d_0': 720, 'MaxPool2d_0': 720,
+                'Stage_0/Unit_0': 14646, 'Stage_0/Unit_1': 38856,
+                'Stage_0/Unit_2': 63066, 'Stage_0/Unit_3': 87276,
+                'Stage_1/Unit_0': 135426, 'Stage_1/Unit_1': 229476,
+                'Stage_1/Unit_2': 323526, 'Stage_1/Unit_3': 417576,
+                'Stage_1/Unit_4': 511626, 'Stage_1/Unit_5': 605676,
+                'Stage_1/Unit_6': 699726, 'Stage_1/Unit_7': 793776,
+                'Stage_2/Unit_0': 980076, 'Stage_2/Unit_1': 1348176,
+                'Stage_2/Unit_2': 1716276, 'Stage_2/Unit_3': 2084376
+            },
+            '3': {
+                'Conv2d_0': 720, 'MaxPool2d_0': 720,
+                'Stage_0/Unit_0': 15318, 'Stage_0/Unit_1': 39348,
+                'Stage_0/Unit_2': 63378, 'Stage_0/Unit_3': 87408,
+                'Stage_1/Unit_0': 134388, 'Stage_1/Unit_1': 225648,
+                'Stage_1/Unit_2': 316908, 'Stage_1/Unit_3': 408168,
+                'Stage_1/Unit_4': 499428, 'Stage_1/Unit_5': 590688,
+                'Stage_1/Unit_6': 681948, 'Stage_1/Unit_7': 773208,
+                'Stage_2/Unit_0': 953568, 'Stage_2/Unit_1': 1308888,
+                'Stage_2/Unit_2': 1664208, 'Stage_2/Unit_3': 2019528
+            },
+            '4': {
+                'Conv2d_0': 720, 'MaxPool2d_0': 720,
+                'Stage_0/Unit_0': 15372, 'Stage_0/Unit_1': 38496,
+                'Stage_0/Unit_2': 61620, 'Stage_0/Unit_3': 84744,
+                'Stage_1/Unit_0': 130644, 'Stage_1/Unit_1': 219384,
+                'Stage_1/Unit_2': 308124, 'Stage_1/Unit_3': 396864,
+                'Stage_1/Unit_4': 485604, 'Stage_1/Unit_5': 574344,
+                'Stage_1/Unit_6': 663084, 'Stage_1/Unit_7': 751824,
+                'Stage_2/Unit_0': 926856, 'Stage_2/Unit_1': 1270800,
+                'Stage_2/Unit_2': 1614744, 'Stage_2/Unit_3': 1958688
+            },
+            '8': {
+                'Conv2d_0': 720, 'MaxPool2d_0': 720,
+                'Stage_0/Unit_0': 17928, 'Stage_0/Unit_1': 42552,
+                'Stage_0/Unit_2': 67176, 'Stage_0/Unit_3': 91800,
+                'Stage_1/Unit_0': 139320, 'Stage_1/Unit_1': 230040,
+                'Stage_1/Unit_2': 320760, 'Stage_1/Unit_3': 411480,
+                'Stage_1/Unit_4': 502200, 'Stage_1/Unit_5': 592920,
+                'Stage_1/Unit_6': 683640, 'Stage_1/Unit_7': 774360,
+                'Stage_2/Unit_0': 952344, 'Stage_2/Unit_1': 1299672,
+                'Stage_2/Unit_2': 1647000, 'Stage_2/Unit_3': 1994328
+            },
+        }
+
+        for num_groups in endpoints_groups_1_5:
+            for scope, end_point in enumerate(endpoints_groups_1_5[num_groups]):
+                print(num_groups, end_point)
+                with slim.arg_scope([slim.conv2d, slim.separable_conv2d, group_conv2d],
+                                    normalizer_fn=slim.batch_norm):
+                    shufflenet.shufflenet_base(inputs, final_endpoint=end_point,
+                                               depth_multiplier=1.5,
+                                               num_groups=int(num_groups),
+                                               scope=num_groups + '/' + str(scope))
+                    total_params, _ = slim.model_analyzer.analyze_vars(
+                        slim.get_model_variables(scope=num_groups + '/' + str(scope)))
+
+                    self.assertAlmostEqual(endpoints_groups_1_5[num_groups][end_point], total_params)
+
+    def testModelHasExpectedNumberOfParametersWithRate2_0(self):
+        batch_size = 5
+        height, width = 224, 224
+        inputs = tf.random_uniform((batch_size, height, width, 3))
+        endpoints_groups_2_0 = {
+            '1': {
+                'Conv2d_0': 720, 'MaxPool2d_0': 720,
+                'Stage_0/Unit_0': 23328, 'Stage_0/Unit_1': 66744,
+                'Stage_0/Unit_2': 110160, 'Stage_0/Unit_3': 153576,
+                'Stage_1/Unit_0': 239544, 'Stage_1/Unit_1': 409320,
+                'Stage_1/Unit_2': 579096, 'Stage_1/Unit_3': 748872,
+                'Stage_1/Unit_4': 918648, 'Stage_1/Unit_5': 1088424,
+                'Stage_1/Unit_6': 1258200, 'Stage_1/Unit_7': 1427976,
+                'Stage_2/Unit_0': 1765800, 'Stage_2/Unit_1': 2437128,
+                'Stage_2/Unit_2': 3108456, 'Stage_2/Unit_3': 3779784
+            },
+            '2': {
+                'Conv2d_0': 720, 'MaxPool2d_0': 720,
+                'Stage_0/Unit_0': 24548, 'Stage_0/Unit_1': 67248,
+                'Stage_0/Unit_2': 109948, 'Stage_0/Unit_3': 152648,
+                'Stage_1/Unit_0': 236848, 'Stage_1/Unit_1': 402248,
+                'Stage_1/Unit_2': 567648, 'Stage_1/Unit_3': 733048,
+                'Stage_1/Unit_4': 898448, 'Stage_1/Unit_5': 1063848,
+                'Stage_1/Unit_6': 1229248, 'Stage_1/Unit_7': 1394648,
+                'Stage_2/Unit_0': 1723048, 'Stage_2/Unit_1': 2373848,
+                'Stage_2/Unit_2': 3024648, 'Stage_2/Unit_3': 3675448
+            },
+            '3': {
+                'Conv2d_0': 720, 'MaxPool2d_0': 720,
+                'Stage_0/Unit_0': 25008, 'Stage_0/Unit_1': 66648,
+                'Stage_0/Unit_2': 108288, 'Stage_0/Unit_3': 149928,
+                'Stage_1/Unit_0': 231768, 'Stage_1/Unit_1': 391848,
+                'Stage_1/Unit_2': 551928, 'Stage_1/Unit_3': 712008,
+                'Stage_1/Unit_4': 872088, 'Stage_1/Unit_5': 1032168,
+                'Stage_1/Unit_6': 1192248, 'Stage_1/Unit_7': 1352328,
+                'Stage_2/Unit_0': 1669608, 'Stage_2/Unit_1': 2296968,
+                'Stage_2/Unit_2': 2924328, 'Stage_2/Unit_3': 3551688
+            },
+            '4': {
+                'Conv2d_0': 720, 'MaxPool2d_0': 720,
+                'Stage_0/Unit_0': 25264, 'Stage_0/Unit_1': 65928,
+                'Stage_0/Unit_2': 106592, 'Stage_0/Unit_3': 147256,
+                'Stage_1/Unit_0': 226952, 'Stage_1/Unit_1': 382264,
+                'Stage_1/Unit_2': 537576, 'Stage_1/Unit_3': 692888,
+                'Stage_1/Unit_4': 848200, 'Stage_1/Unit_5': 1003512,
+                'Stage_1/Unit_6': 1158824, 'Stage_1/Unit_7': 1314136,
+                'Stage_2/Unit_0': 1621496, 'Stage_2/Unit_1': 2228056,
+                'Stage_2/Unit_2': 2834616, 'Stage_2/Unit_3': 3441176
+            },
+            '8': {
+                'Conv2d_0': 720, 'MaxPool2d_0': 720,
+                'Stage_0/Unit_0': 28296, 'Stage_0/Unit_1': 70344,
+                'Stage_0/Unit_2': 112392, 'Stage_0/Unit_3': 154440,
+                'Stage_1/Unit_0': 236232, 'Stage_1/Unit_1': 394056,
+                'Stage_1/Unit_2': 551880, 'Stage_1/Unit_3': 709704,
+                'Stage_1/Unit_4': 867528, 'Stage_1/Unit_5': 1025352,
+                'Stage_1/Unit_6': 1183176, 'Stage_1/Unit_7': 1341000,
+                'Stage_2/Unit_0': 1652040, 'Stage_2/Unit_1': 2262600,
+                'Stage_2/Unit_2': 2873160, 'Stage_2/Unit_3': 3483720
+            },
+        }
+
+        for num_groups in endpoints_groups_2_0:
+            for scope, end_point in enumerate(endpoints_groups_2_0[num_groups]):
+                print(num_groups, end_point)
+                with slim.arg_scope([slim.conv2d, slim.separable_conv2d, group_conv2d],
+                                    normalizer_fn=slim.batch_norm):
+                    shufflenet.shufflenet_base(inputs, final_endpoint=end_point,
+                                               num_groups=int(num_groups),
+                                               depth_multiplier=2.0,
+                                               scope=num_groups + '/' + str(scope))
+                    total_params, _ = slim.model_analyzer.analyze_vars(
+                        slim.get_model_variables(scope=num_groups + '/' + str(scope)))
+
+                    self.assertAlmostEqual(endpoints_groups_2_0[num_groups][end_point], total_params)
+
     def testBuildEndPointsWithDepthMultiplierLessThanOne(self):
         batch_size = 5
         height, width = 224, 224
@@ -550,6 +854,24 @@ class ShuffleNetV1Test(tf.test.TestCase):
         self.assertIn('is_training', sc[slim.arg_scope_func_key(slim.batch_norm)])
         sc = shufflenet.shufflenet_v1_arg_scope()
         self.assertIn('is_training', sc[slim.arg_scope_func_key(slim.batch_norm)])
+
+    def testFlops(self):
+        def stats_graph(graph):
+            flops = tf.profiler.profile(graph, options=tf.profiler.ProfileOptionBuilder.float_operation())
+            params = tf.profiler.profile(graph,
+                                         options=tf.profiler.ProfileOptionBuilder.trainable_variables_parameter())
+            print('FLOPs: {};    Trainable params: {}'.format(flops.total_float_ops, params.total_parameters))
+
+        batch_size = 5
+        height, width = 224, 224
+        inputs = tf.random_uniform((batch_size, height, width, 3))
+
+        with slim.arg_scope([slim.conv2d, slim.separable_conv2d, group_conv2d],
+                            normalizer_fn=slim.batch_norm):
+            shufflenet.shufflenet_base(inputs, depth_multiplier=2.0)
+            graph = tf.get_default_graph()
+            stats_graph(graph)
+        self.assertTrue(False)
 
 
 if __name__ == '__main__':
