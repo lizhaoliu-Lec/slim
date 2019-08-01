@@ -69,7 +69,7 @@ class ShuffleNetV1Test(tf.test.TestCase):
         height, width = 224, 224
 
         inputs = tf.random_uniform((batch_size, height, width, 3))
-        net, endpoints = shufflenet.shufflenet_base(inputs)
+        net, endpoints = shufflenet.shufflenet_v1_base(inputs)
         print(net.op.name)
         # self.assertTrue(net.op.name.startswith('ShufflenetV1/stage3/shufflenet_unit_3'))
         self.assertListEqual(net.get_shape().as_list(),
@@ -114,7 +114,7 @@ class ShuffleNetV1Test(tf.test.TestCase):
         for index, endpoint in enumerate(endpoints):
             with tf.Graph().as_default():
                 inputs = tf.random_uniform((batch_size, height, width, 3))
-                out_tensor, end_points = shufflenet.shufflenet_base(inputs, final_endpoint=endpoint)
+                out_tensor, end_points = shufflenet.shufflenet_v1_base(inputs, final_endpoint=endpoint)
                 print(out_tensor.op.name)
                 self.assertTrue(out_tensor.op.name.startswith(
                     'ShufflenetV1/' + endpoint))
@@ -132,7 +132,7 @@ class ShuffleNetV1Test(tf.test.TestCase):
         }
 
         inputs = tf.random_uniform((batch_size, height, width, 3))
-        net, end_points = shufflenet.shufflenet_base(
+        net, end_points = shufflenet.shufflenet_v1_base(
             inputs, final_endpoint='Stage_1/Unit_7', depth_channels_defs=depth_channels_defs)
         self.assertTrue(net.op.name.startswith('ShufflenetV1/Stage_1/Unit_7'))
         self.assertListEqual(net.get_shape().as_list(),
@@ -157,7 +157,7 @@ class ShuffleNetV1Test(tf.test.TestCase):
         inputs = tf.random_uniform((batch_size, height, width, 3))
         with slim.arg_scope([slim.conv2d, slim.separable_conv2d],
                             normalizer_fn=slim.batch_norm):
-            _, end_points = shufflenet.shufflenet_base(
+            _, end_points = shufflenet.shufflenet_v1_base(
                 inputs, final_endpoint='Stage_2/Unit_3')
 
         endpoints_shapes = {
@@ -199,7 +199,7 @@ class ShuffleNetV1Test(tf.test.TestCase):
         inputs = tf.random_uniform((batch_size, height, width, 3))
         with slim.arg_scope([slim.conv2d, slim.separable_conv2d],
                             normalizer_fn=slim.batch_norm):
-            _, end_points = shufflenet.shufflenet_base(
+            _, end_points = shufflenet.shufflenet_v1_base(
                 inputs, output_stride=output_stride,
                 final_endpoint='Stage_2/Unit_3')
 
@@ -242,7 +242,7 @@ class ShuffleNetV1Test(tf.test.TestCase):
         inputs = tf.random_uniform((batch_size, height, width, 3))
         with slim.arg_scope([slim.conv2d, slim.separable_conv2d],
                             normalizer_fn=slim.batch_norm):
-            _, end_points = shufflenet.shufflenet_base(
+            _, end_points = shufflenet.shufflenet_v1_base(
                 inputs, output_stride=output_stride,
                 final_endpoint='Stage_2/Unit_3')
 
@@ -283,7 +283,7 @@ class ShuffleNetV1Test(tf.test.TestCase):
         inputs = tf.random_uniform((batch_size, height, width, 3))
         with slim.arg_scope([slim.conv2d, slim.separable_conv2d],
                             normalizer_fn=slim.batch_norm):
-            _, end_points = shufflenet.shufflenet_base(
+            _, end_points = shufflenet.shufflenet_v1_base(
                 inputs, final_endpoint='Stage_2/Unit_3', depth_multiplier=0.75)
 
         # For the Conv2d_0 layer FaceNet has depth=16
@@ -384,9 +384,9 @@ class ShuffleNetV1Test(tf.test.TestCase):
                 print(num_groups, end_point)
                 with slim.arg_scope([slim.conv2d, slim.separable_conv2d, group_conv2d],
                                     normalizer_fn=slim.batch_norm):
-                    shufflenet.shufflenet_base(inputs, final_endpoint=end_point,
-                                               num_groups=int(num_groups),
-                                               scope=num_groups + '/' + str(scope))
+                    shufflenet.shufflenet_v1_base(inputs, final_endpoint=end_point,
+                                                  num_groups=int(num_groups),
+                                                  scope=num_groups + '/' + str(scope))
                     total_params, _ = slim.model_analyzer.analyze_vars(
                         slim.get_model_variables(scope=num_groups + '/' + str(scope)))
 
@@ -459,10 +459,10 @@ class ShuffleNetV1Test(tf.test.TestCase):
                 print(num_groups, end_point)
                 with slim.arg_scope([slim.conv2d, slim.separable_conv2d, group_conv2d],
                                     normalizer_fn=slim.batch_norm):
-                    shufflenet.shufflenet_base(inputs, final_endpoint=end_point,
-                                               depth_multiplier=0.25,
-                                               num_groups=int(num_groups),
-                                               scope=num_groups + '/' + str(scope))
+                    shufflenet.shufflenet_v1_base(inputs, final_endpoint=end_point,
+                                                  depth_multiplier=0.25,
+                                                  num_groups=int(num_groups),
+                                                  scope=num_groups + '/' + str(scope))
                     total_params, _ = slim.model_analyzer.analyze_vars(
                         slim.get_model_variables(scope=num_groups + '/' + str(scope)))
 
@@ -535,10 +535,10 @@ class ShuffleNetV1Test(tf.test.TestCase):
                 print(num_groups, end_point)
                 with slim.arg_scope([slim.conv2d, slim.separable_conv2d, group_conv2d],
                                     normalizer_fn=slim.batch_norm):
-                    shufflenet.shufflenet_base(inputs, final_endpoint=end_point,
-                                               depth_multiplier=0.5,
-                                               num_groups=int(num_groups),
-                                               scope=num_groups + '/' + str(scope))
+                    shufflenet.shufflenet_v1_base(inputs, final_endpoint=end_point,
+                                                  depth_multiplier=0.5,
+                                                  num_groups=int(num_groups),
+                                                  scope=num_groups + '/' + str(scope))
                     total_params, _ = slim.model_analyzer.analyze_vars(
                         slim.get_model_variables(scope=num_groups + '/' + str(scope)))
 
@@ -611,10 +611,10 @@ class ShuffleNetV1Test(tf.test.TestCase):
                 print(num_groups, end_point)
                 with slim.arg_scope([slim.conv2d, slim.separable_conv2d, group_conv2d],
                                     normalizer_fn=slim.batch_norm):
-                    shufflenet.shufflenet_base(inputs, final_endpoint=end_point,
-                                               depth_multiplier=1.5,
-                                               num_groups=int(num_groups),
-                                               scope=num_groups + '/' + str(scope))
+                    shufflenet.shufflenet_v1_base(inputs, final_endpoint=end_point,
+                                                  depth_multiplier=1.5,
+                                                  num_groups=int(num_groups),
+                                                  scope=num_groups + '/' + str(scope))
                     total_params, _ = slim.model_analyzer.analyze_vars(
                         slim.get_model_variables(scope=num_groups + '/' + str(scope)))
 
@@ -687,10 +687,10 @@ class ShuffleNetV1Test(tf.test.TestCase):
                 print(num_groups, end_point)
                 with slim.arg_scope([slim.conv2d, slim.separable_conv2d, group_conv2d],
                                     normalizer_fn=slim.batch_norm):
-                    shufflenet.shufflenet_base(inputs, final_endpoint=end_point,
-                                               num_groups=int(num_groups),
-                                               depth_multiplier=2.0,
-                                               scope=num_groups + '/' + str(scope))
+                    shufflenet.shufflenet_v1_base(inputs, final_endpoint=end_point,
+                                                  num_groups=int(num_groups),
+                                                  depth_multiplier=2.0,
+                                                  scope=num_groups + '/' + str(scope))
                     total_params, _ = slim.model_analyzer.analyze_vars(
                         slim.get_model_variables(scope=num_groups + '/' + str(scope)))
 
@@ -868,7 +868,7 @@ class ShuffleNetV1Test(tf.test.TestCase):
 
         with slim.arg_scope([slim.conv2d, slim.separable_conv2d, group_conv2d],
                             normalizer_fn=slim.batch_norm):
-            shufflenet.shufflenet_base(inputs, depth_multiplier=2.0)
+            shufflenet.shufflenet_v1_base(inputs, depth_multiplier=2.0)
             graph = tf.get_default_graph()
             stats_graph(graph)
         self.assertTrue(False)
