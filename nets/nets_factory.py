@@ -104,6 +104,10 @@ networks_map = {
     'shufflenet_v1_200_4': shufflenet_v1.shufflenet_v1_200_4,
     'shufflenet_v1_200_8': shufflenet_v1.shufflenet_v1_200_8,
     'shufflenet_v2': shufflenet_v2.shufflenet_v2,
+    'shufflenet_v2_050': shufflenet_v2.shufflenet_v2_050,
+    'shufflenet_v2_100': shufflenet_v2.shufflenet_v2_100,
+    'shufflenet_v2_150': shufflenet_v2.shufflenet_v2_150,
+    'shufflenet_v2_200': shufflenet_v2.shufflenet_v2_200,
 }
 
 arg_scopes_map = {
@@ -170,6 +174,10 @@ arg_scopes_map = {
     'shufflenet_v1_200_4': shufflenet_v1.shufflenet_v1_arg_scope,
     'shufflenet_v1_200_8': shufflenet_v1.shufflenet_v1_arg_scope,
     'shufflenet_v2': shufflenet_v2.shufflenet_v2_arg_scope,
+    'shufflenet_v2_050': shufflenet_v2.shufflenet_v2_arg_scope,
+    'shufflenet_v2_100': shufflenet_v2.shufflenet_v2_arg_scope,
+    'shufflenet_v2_150': shufflenet_v2.shufflenet_v2_arg_scope,
+    'shufflenet_v2_200': shufflenet_v2.shufflenet_v2_arg_scope,
 }
 
 
