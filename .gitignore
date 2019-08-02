@@ -4,3 +4,6 @@
 # filter ide file
 .idea/
 .vscode/
+
+# filter cache
+__pycache__/
