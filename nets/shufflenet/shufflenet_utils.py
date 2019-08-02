@@ -93,6 +93,29 @@ def group_conv2d(inputs,
             return net
 
 
+def _reduced_kernel_size_for_small_input(input_tensor, kernel_size):
+    """Define kernel size which is automatically reduced for small input.
+
+    If the shape of the input images is unknown at graph construction time this
+    function assumes that the input images are large enough.
+
+    Args:
+      input_tensor: input tensor of size [batch_size, height, width, channels].
+      kernel_size: desired kernel size of length 2: [kernel_height, kernel_width]
+
+    Returns:
+      a tensor with the kernel size.
+    """
+    shape = input_tensor.get_shape().as_list()
+    if shape[1] is None or shape[2] is None:
+        kernel_size_out = kernel_size
+    else:
+        kernel_size_out = [min(shape[1], kernel_size[0]),
+                           min(shape[2], kernel_size[1])]
+
+    return kernel_size_out
+
+
 def _channel_shuffle(inputs,
                      num_groups,
                      scope=None):
@@ -156,8 +179,8 @@ def get_shape_list(tensor, expected_rank=None, name=None):
 
     if not non_static_indexes:
         return shape
-
     dyn_shape = tf.shape(tensor)
+
     for index in non_static_indexes:
         shape[index] = dyn_shape[index]
     return shape
