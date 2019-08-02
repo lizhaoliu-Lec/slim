@@ -81,7 +81,8 @@ from collections import namedtuple
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
 
-from nets.shufflenet.shufflenet_utils import group_conv2d, _channel_shuffle
+from nets.shufflenet.shufflenet_utils import group_conv2d, \
+    _channel_shuffle, _reduced_kernel_size_for_small_input
 
 DEPTH_CHANNELS_DEFS = {
     '1': [144, 288, 576],
@@ -499,29 +500,6 @@ shufflenet_v1_200_2 = wrapped_partial(shufflenet_v1, depth_multiplier=2.0, num_g
 shufflenet_v1_200_3 = wrapped_partial(shufflenet_v1, depth_multiplier=2.0, num_groups=3)
 shufflenet_v1_200_4 = wrapped_partial(shufflenet_v1, depth_multiplier=2.0, num_groups=4)
 shufflenet_v1_200_8 = wrapped_partial(shufflenet_v1, depth_multiplier=2.0, num_groups=8)
-
-
-def _reduced_kernel_size_for_small_input(input_tensor, kernel_size):
-    """Define kernel size which is automatically reduced for small input.
-
-    If the shape of the input images is unknown at graph construction time this
-    function assumes that the input images are large enough.
-
-    Args:
-      input_tensor: input tensor of size [batch_size, height, width, channels].
-      kernel_size: desired kernel size of length 2: [kernel_height, kernel_width]
-
-    Returns:
-      a tensor with the kernel size.
-    """
-    shape = input_tensor.get_shape().as_list()
-    if shape[1] is None or shape[2] is None:
-        kernel_size_out = kernel_size
-    else:
-        kernel_size_out = [min(shape[1], kernel_size[0]),
-                           min(shape[2], kernel_size[1])]
-
-    return kernel_size_out
 
 
 def _valid_depth(depths, num_groups):
