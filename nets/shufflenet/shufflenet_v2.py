@@ -8,7 +8,7 @@ import tensorflow as tf
 
 slim = tf.contrib.slim
 
-from nets.shufflenet.shufflenet import _channel_shuffle, stack_blocks_dense
+from nets.shufflenet.shufflenet_v1 import _channel_shuffle, stack_blocks_dense
 
 
 @slim.add_arg_scope

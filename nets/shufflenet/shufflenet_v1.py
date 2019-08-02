@@ -1,65 +1,74 @@
 """ShuffleNet v1.
 
+ShuffleNet, which is designed specially
+for mobile devices with very limited computing power (e.g.,10-150 MFLOPs)
+
+As described in https://arxiv.org/pdf/1707.01083.pdf.
+
+  ShuffleNet: An Extremely Efficient Convolutional Neural Network
+                    for Mobile Devices
+  Xiangyu Zhang∗ Xinyu Zhou∗ Mengxiao Lin Jian Sun
+
 100% Shufflenet V1 (group=3, base) with input size 224x224:
 
 See shufflenet_v1()
-+------------------------------------------+
-|                Layer                     |
-+------------------------------------------+
-|        ShufflenetV1/Conv2d_0             |
-|        ShufflenetV1/MaxPool2d_0          |
-|        ShufflenetV1/Stage_0/Unit_0       |
-|        ShufflenetV1/Stage_0/Unit_1       |
-|        ShufflenetV1/Stage_0/Unit_2       |
-|        ShufflenetV1/Stage_0/Unit_3       |
-|        ShufflenetV1/Stage_1/Unit_0       |
-|        ShufflenetV1/Stage_1/Unit_1       |
-|        ShufflenetV1/Stage_1/Unit_2       |
-|        ShufflenetV1/Stage_1/Unit_3       |
-|        ShufflenetV1/Stage_1/Unit_4       |
-|        ShufflenetV1/Stage_1/Unit_5       |
-|        ShufflenetV1/Stage_1/Unit_6       |
-|        ShufflenetV1/Stage_1/Unit_7       |
-|        ShufflenetV1/Stage_2/Unit_0       |
-|        ShufflenetV1/Stage_2/Unit_1       |
-|        ShufflenetV1/Stage_2/Unit_2       |
-|        ShufflenetV1/Stage_2/Unit_3       |
-+------------------------------------------+
-|           FLOPs: 1,382,575,746           |
-+------------------------------------------+
-|        Trainable params: 892,488         |
-+------------------------------------------+
++------------------------------------------+------------------+
+|        Layer                             |      params      |
++------------------------------------------+------------------+
+|        ShufflenetV1/Conv2d_0             |        696       |
+|        ShufflenetV1/MaxPool2d_0          |          0       |
+|        ShufflenetV1/Stage_0/Unit_0       |       6.97k      |
+|        ShufflenetV1/Stage_0/Unit_1       |      10.86k      |
+|        ShufflenetV1/Stage_0/Unit_2       |      10.86k      |
+|        ShufflenetV1/Stage_0/Unit_3       |      10.86k      |
+|        ShufflenetV1/Stage_1/Unit_0       |      21.24k      |
+|        ShufflenetV1/Stage_1/Unit_1       |      40.92k      |
+|        ShufflenetV1/Stage_1/Unit_2       |      40.92k      |
+|        ShufflenetV1/Stage_1/Unit_3       |      40.92k      |
+|        ShufflenetV1/Stage_1/Unit_4       |      40.92k      |
+|        ShufflenetV1/Stage_1/Unit_5       |      40.92k      |
+|        ShufflenetV1/Stage_1/Unit_6       |      40.92k      |
+|        ShufflenetV1/Stage_1/Unit_7       |      40.92k      |
+|        ShufflenetV1/Stage_2/Unit_0       |      80.88k      |
+|        ShufflenetV1/Stage_2/Unit_1       |     158.64k      |
+|        ShufflenetV1/Stage_2/Unit_2       |     158.64k      |
+|        ShufflenetV1/Stage_2/Unit_3       |     158.64k      |
++------------------------------------------+------------------+
+|               Total:                     |     904.73k      |
++------------------------------------------+------------------+
+|               Flops:                     |   1,385,158,059  |
++------------------------------------------+------------------+
 
 
 200% Shufflenet V1 (group=3, base) with input size 224x224:
 
 See shufflenet_v1()
-+------------------------------------------+
-|                Layer                     |
-+------------------------------------------+
-|        ShufflenetV1/Conv2d_0             |
-|        ShufflenetV1/MaxPool2d_0          |
-|        ShufflenetV1/Stage_0/Unit_0       |
-|        ShufflenetV1/Stage_0/Unit_1       |
-|        ShufflenetV1/Stage_0/Unit_2       |
-|        ShufflenetV1/Stage_0/Unit_3       |
-|        ShufflenetV1/Stage_1/Unit_0       |
-|        ShufflenetV1/Stage_1/Unit_1       |
-|        ShufflenetV1/Stage_1/Unit_2       |
-|        ShufflenetV1/Stage_1/Unit_3       |
-|        ShufflenetV1/Stage_1/Unit_4       |
-|        ShufflenetV1/Stage_1/Unit_5       |
-|        ShufflenetV1/Stage_1/Unit_6       |
-|        ShufflenetV1/Stage_1/Unit_7       |
-|        ShufflenetV1/Stage_2/Unit_0       |
-|        ShufflenetV1/Stage_2/Unit_1       |
-|        ShufflenetV1/Stage_2/Unit_2       |
-|        ShufflenetV1/Stage_2/Unit_3       |
-+------------------------------------------+
-|           FLOPs: 5,090,010,786           |
-+------------------------------------------+
-|       Trainable params: 3,502,728        |
-+------------------------------------------+
++------------------------------------------+------------------+
+|        Layer                             |      params      |
++------------------------------------------+------------------+
+|        ShufflenetV1/Conv2d_0             |        696       |
+|        ShufflenetV1/MaxPool2d_0          |          0       |
+|        ShufflenetV1/Stage_0/Unit_0       |      23.59k      |
+|        ShufflenetV1/Stage_0/Unit_1       |      40.92k      |
+|        ShufflenetV1/Stage_0/Unit_2       |      40.92k      |
+|        ShufflenetV1/Stage_0/Unit_3       |      40.92k      |
+|        ShufflenetV1/Stage_1/Unit_0       |      80.88k      |
+|        ShufflenetV1/Stage_1/Unit_1       |     158.64k      |
+|        ShufflenetV1/Stage_1/Unit_2       |     158.64k      |
+|        ShufflenetV1/Stage_1/Unit_3       |     158.64k      |
+|        ShufflenetV1/Stage_1/Unit_4       |     158.64k      |
+|        ShufflenetV1/Stage_1/Unit_5       |     158.64k      |
+|        ShufflenetV1/Stage_1/Unit_6       |     158.64k      |
+|        ShufflenetV1/Stage_1/Unit_7       |     158.64k      |
+|        ShufflenetV1/Stage_2/Unit_0       |       2.19m      |
+|        ShufflenetV1/Stage_2/Unit_1       |     315.36k      |
+|        ShufflenetV1/Stage_2/Unit_2       |     624.48k      |
+|        ShufflenetV1/Stage_2/Unit_3       |     624.48k      |
++------------------------------------------+------------------+
+|               Total:                     |       3.53m      |
++------------------------------------------+------------------+
+|               Flops:                     |   5,100,328,779  |
++------------------------------------------+------------------+
 
 """
 
@@ -109,19 +118,15 @@ def unit_fn(inputs,
     """
     depth_in = slim.utils.last_dimension(inputs.get_shape(), min_rank=4)
     if spatial_down:
-        # ratio = depth // depth_bottleneck
         depth -= depth_in
-        # depth_bottleneck = depth // ratio
-        # depth = depth_bottleneck * ratio
 
+    # we round down the depth of bottlenet to be adaptive with group conv.
     if depth_bottleneck % num_groups != 0:
         depth_bottleneck = depth_bottleneck - depth_bottleneck % num_groups
 
     residual = group_conv2d(inputs, depth_bottleneck, [1, 1], stride=1,
                             num_groups=num_groups if not first_stage_first_unit else 1)
-    # print(num_groups, '*** num groups ***')
-    # print(residual.get_shape().as_list(), '*** after group conv1 ***')
-    # print(residual.graph.get_collection('trainable_variables'), '*** after group conv1 graph ***')
+
     # channel shuffle
     if not first_stage_first_unit:
         residual = _channel_shuffle(residual, num_groups)
@@ -136,12 +141,9 @@ def unit_fn(inputs,
                                      padding='SAME',
                                      rate=rate,
                                      activation_fn=None)
-    # print(residual.get_shape().as_list(), '*** after separable_conv2d ***')
-    # print(residual.graph.get_collection('trainable_variables'), '*** after separable_conv2d graph ***')
+
     residual = group_conv2d(residual, depth, [1, 1], stride=1,
                             num_groups=num_groups, activation_fn=None)
-    # print(residual.get_shape().as_list(), '*** after group conv2 ***')
-    # print(residual.graph.get_collection('trainable_variables'), '*** after group conv2 graph ***')
 
     if spatial_down:
         shortcut = slim.avg_pool2d(inputs, [3, 3], stride=stride,
@@ -211,9 +213,7 @@ def stage(scope,
 
         args.append(arg)
 
-    return Stage(scope=scope,
-                 unit_fn=unit_fn,
-                 args=args)
+    return Stage(scope=scope, unit_fn=unit_fn, args=args)
 
 
 @slim.add_arg_scope
@@ -325,7 +325,7 @@ def shufflenet_v1_base(inputs,
 
     depths = [depth(d) for d in depth_channels_defs[str(num_groups)]]
 
-    if not _valid_depth(depths, num_groups, bottlenet_compact_ratio):
+    if not _valid_depth(depths, num_groups):
         raise ValueError('depths `%s` is not a valid depths for group conv.' % str(depths))
 
     stages = [
@@ -553,6 +553,7 @@ def shufflenet_v1_arg_scope(
         weight_decay=0.00004,
         stddev=0.09,
         regularize_depthwise=False,
+        regularize_group_conv=True,
         batch_norm_decay=0.9997,
         batch_norm_epsilon=0.001,
         batch_norm_updates_collections=tf.GraphKeys.UPDATE_OPS,
@@ -565,6 +566,7 @@ def shufflenet_v1_arg_scope(
       weight_decay: The weight decay to use for regularizing the model.
       stddev: The standard deviation of the trunctated normal weight initializer.
       regularize_depthwise: Whether or not apply regularization on depthwise.
+      regularize_group_conv: Whether or not apply regularization on group conv.
       batch_norm_decay: Decay for batch norm moving average.
       batch_norm_epsilon: Small float added to variance to avoid dividing by zero
         in batch norm.
@@ -593,11 +595,18 @@ def shufflenet_v1_arg_scope(
     else:
         depthwise_regularizer = None
 
+    if regularize_group_conv:
+        group_conv_regularizer = regularizer
+    else:
+        group_conv_regularizer = None
+
     with slim.arg_scope([slim.conv2d, slim.separable_conv2d, group_conv2d],
                         weights_initializer=weights_init,
                         activation_fn=tf.nn.relu6, normalizer_fn=normalizer_fn):
         with slim.arg_scope([slim.batch_norm], **batch_norm_params):
             with slim.arg_scope([slim.conv2d], weights_regularizer=regularizer):
                 with slim.arg_scope([slim.separable_conv2d],
-                                    weights_regularizer=depthwise_regularizer) as sc:
-                    return sc
+                                    weights_regularizer=depthwise_regularizer):
+                    with slim.arg_scope([group_conv2d],
+                                        weights_regularizer=group_conv_regularizer) as sc:
+                        return sc
